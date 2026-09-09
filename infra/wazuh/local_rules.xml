@@ -1,0 +1,46 @@
+<!--
+  Wazuh rules for Sovereign Sentinel. Install to /var/ossec/etc/rules/.
+
+  Levels stop at 12 on purpose. In Wazuh, 13+ reads as a confirmed compromise,
+  and what Sentinel emits is a prioritised suspicion backed by evidence — never
+  proof (spec §35). Overstating severity is how a SOC learns to ignore a feed.
+-->
+<group name="sovereign_sentinel,dns,">
+
+  <rule id="100200" level="0">
+    <field name="integration">sovereign-sentinel</field>
+    <description>Sovereign Sentinel: DNS incident received</description>
+  </rule>
+
+  <rule id="100201" level="5">
+    <if_sid>100200</if_sid>
+    <field name="sentinel.risk_score">^[3-4]\d$</field>
+    <description>Sentinel: low-risk DNS incident ($(sentinel.classification)) at $(sentinel.site_id)</description>
+  </rule>
+
+  <rule id="100202" level="7">
+    <if_sid>100200</if_sid>
+    <field name="sentinel.risk_score">^[5-6]\d$</field>
+    <description>Sentinel: DNS incident ($(sentinel.classification)) at $(sentinel.site_id)</description>
+  </rule>
+
+  <rule id="100203" level="10">
+    <if_sid>100200</if_sid>
+    <field name="sentinel.risk_score">^[7-8]\d$</field>
+    <description>Sentinel: high-risk DNS incident ($(sentinel.classification)) from $(sentinel.source_hosts)</description>
+  </rule>
+
+  <rule id="100204" level="12">
+    <if_sid>100200</if_sid>
+    <field name="sentinel.risk_score">^(9\d|100)$</field>
+    <description>Sentinel: critical DNS incident ($(sentinel.classification)) from $(sentinel.source_hosts)</description>
+  </rule>
+
+  <rule id="100210" level="12">
+    <if_sid>100200</if_sid>
+    <field name="sentinel.classification">possible_tunneling</field>
+    <description>Sentinel: possible DNS tunneling / data exfiltration at $(sentinel.site_id)</description>
+    <group>exfiltration,</group>
+  </rule>
+
+</group>

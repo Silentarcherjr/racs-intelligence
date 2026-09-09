@@ -10,6 +10,7 @@
 import { Kafka, logLevel } from "kafkajs";
 import type { DnsEvent, Incident } from "@sentinel/dns-schema";
 import { analyzeWindow } from "@sentinel/threat-engine";
+import { sendIncident, sinkFromEnv } from "@sentinel/wazuh-adapter";
 import { EventWindow } from "./window.js";
 
 function arg(name: string, fallback: string): string {
@@ -24,7 +25,12 @@ const opts = {
   windowSec: Number(arg("window", "300")),
   analyzeEverySec: Number(arg("interval", "5")),
   fromBeginning: !process.argv.includes("--from-latest"),
+  /** Below this risk we log locally but do not page a SOC. */
+  alertMinRisk: Number(arg("alert-min-risk", "50")),
+  alerts: !process.argv.includes("--no-alerts"),
 };
+
+const sink = opts.alerts ? sinkFromEnv() : null;
 
 const window = new EventWindow(opts.windowSec);
 
@@ -32,7 +38,7 @@ const window = new EventWindow(opts.windowSec);
 const REPORT_DELTA = 5;
 const reported = new Map<string, number>();
 
-function report(inc: Incident): void {
+async function report(inc: Incident): Promise<void> {
   const bar = "█".repeat(Math.round(inc.riskScore / 5)).padEnd(20, "·");
   console.log(`\n  ${bar} ${String(inc.riskScore).padStart(3)}  ${inc.classification}`);
   console.log(`  site ${inc.siteId} · confidence ${inc.confidence} · hosts ${inc.sourceHosts.join(", ")}`);
@@ -41,10 +47,20 @@ function report(inc: Incident): void {
     console.log(`    +${String(ev.weight).padStart(2)} [${ev.source}] ${ev.description}`);
   }
 
-  // ── Integration points, owned by other lanes (AGENTS.md §5) ──────────────
-  // Dev 2: incident.explanation = await explainIncident(incident)  — QVAC, local
-  // Dev 3: await wazuh.send(incident)  /  await clickhouse.writeQoe(window)
-  // Left unwired on purpose: a fake explanation here would be worse than none.
+  // ── Dev 2's integration point, still unwired ─────────────────────────────
+  // incident.explanation = await explainIncident(incident)   — QVAC, local only
+  // Left unwired on purpose: a fabricated explanation is worse than none, and
+  // the alert schema omits the field entirely when there is no analyst output.
+
+  if (sink && inc.riskScore >= opts.alertMinRisk) {
+    try {
+      await sendIncident(inc, sink);
+      console.log(`  → alert sent to Wazuh sink (${sink.name})`);
+    } catch (err) {
+      // A dropped security alert must never be silent.
+      console.error(`  ✗ FAILED to deliver alert ${inc.id}:`, err);
+    }
+  }
 }
 
 async function main(): Promise<void> {
@@ -57,7 +73,10 @@ async function main(): Promise<void> {
 
   await consumer.connect();
   await consumer.subscribe({ topic: opts.topic, fromBeginning: opts.fromBeginning });
-  console.log(`sentinel-agent · ${opts.broker} · topic ${opts.topic} · window ${opts.windowSec}s`);
+  console.log(
+    `sentinel-agent · ${opts.broker} · topic ${opts.topic} · window ${opts.windowSec}s · ` +
+    (sink ? `alerts→${sink.name} at risk ≥${opts.alertMinRisk}` : "alerts off"),
+  );
 
   let received = 0;
   const timer = setInterval(() => {
@@ -70,7 +89,7 @@ async function main(): Promise<void> {
       const prev = reported.get(inc.id);
       if (prev !== undefined && Math.abs(inc.riskScore - prev) < REPORT_DELTA) continue;
       reported.set(inc.id, inc.riskScore);
-      report(inc);
+      void report(inc);
       shown++;
     }
     if (shown === 0) {

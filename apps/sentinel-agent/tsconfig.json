@@ -1,9 +1,21 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "./src", "outDir": "./dist" },
-  "include": ["src/**/*"],
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": [
+    "src/**/*"
+  ],
   "references": [
-    { "path": "../../packages/dns-schema" },
-    { "path": "../../packages/threat-engine" }
+    {
+      "path": "../../packages/dns-schema"
+    },
+    {
+      "path": "../../packages/threat-engine"
+    },
+    {
+      "path": "../../packages/wazuh-adapter"
+    }
   ]
 }
