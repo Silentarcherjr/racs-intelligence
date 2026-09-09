@@ -1,0 +1,16 @@
+# ClickHouse datasource. Requires the grafana-clickhouse-datasource plugin
+# (docker-compose installs it via GF_INSTALL_PLUGINS).
+apiVersion: 1
+datasources:
+  - name: ClickHouse
+    uid: sentinel-clickhouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    jsonData:
+      # host is the compose service name; use 127.0.0.1 for a native install.
+      host: ${CLICKHOUSE_HOST:-clickhouse}
+      port: 8123
+      protocol: http
+      secure: false
+      defaultDatabase: sentinel
