@@ -76,6 +76,7 @@ Sentinel does three things nothing else in the room does:
 
 | File | What it is |
 |---|---|
+| **Repo** | `https://github.com/Silentarcherjr/sovereign-sentinel` — **private, must be made public before submission.** Clone it; never work on a shared filesystem. |
 | `SOVEREIGN_SENTINEL_SPEC.md` | Master spec. Source of truth for requirements, data models, demo script, judging criteria. |
 | `AGENTS.md` (this file) | Shared agent memory: current state, contracts, ownership, handoff log. |
 | `CLAUDE.md` | One-line pointer to this file, because Claude Code looks for `CLAUDE.md`. **Never put content in it.** |
@@ -108,7 +109,10 @@ Useful spec sections (do not re-read the whole file):
 
 ### Repository status
 
-The repo currently contains **only the spec and this file**. No code, no `git init`, no `docker-compose.yml`, no package manifests. Everything below is `NOT STARTED`.
+Repo is live on GitHub (private) with `main` pushed. It contains **only docs so far** —
+spec, this file, `README` skeleton, `LICENSE`, ignore rules. **No application code, no
+`apps/`/`packages/` layout, no `docker-compose.yml`, no package manifests.** Everything
+on the board below except item 0 is `NOT STARTED`.
 
 ### Build board
 
@@ -116,7 +120,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 
 | # | Component | Status | Owner / Agent | Notes |
 |---|---|---|---|---|
-| 0 | Repo skeleton + git + toolchain | IN PROGRESS | Claude | `git init` + first commit done; `.gitignore`, `.gitattributes`, `LICENSE`, `README` skeleton exist. **Still missing:** GitHub remote, `apps/`+`packages/` layout (spec §18), package manifests, `docker-compose.yml`, `.env.example`. |
+| 0 | Repo skeleton + git + toolchain | IN PROGRESS | Claude | Repo created and pushed to GitHub; `.gitignore`, `.gitattributes`, `LICENSE`, `README` skeleton exist. **Still missing:** collaborators, `apps/`+`packages/` layout (spec §18), package manifests, `docker-compose.yml`, `.env.example`. |
 | 1 | **QVAC feasibility spike** | NOT STARTED | — | **Do this first.** Everything else is worthless if local inference does not run. Confirm SDK installs, a model loads, latency is tolerable. |
 | 2 | Synthetic DNS producer | NOT STARTED | — | spec §13 — normal, DGA, typosquat, tunneling, beaconing, QoE degradation |
 | 3 | Kafka (or Redpanda) + Vector | NOT STARTED | — | must be a real stream |
@@ -279,15 +283,17 @@ Did:        Renamed `agents.md` → `AGENTS.md` (the name other tools auto-detec
             Ran `git init` + first commit on `main`. Froze the git workflow in §7:
             `feature/*` → PR → `main`, no `dev` branch, and **AGENTS.md is not edited in
             feature branches**. Team confirmed at 4.
-Did not:    No GitHub remote, no push, no collaborators added — that is the user's call.
+            Installed `gh` CLI, created the private repo
+            `Silentarcherjr/sovereign-sentinel` and pushed `main`.
+Did not:    No collaborators added — needs the other 3 GitHub usernames.
             No application code, no repo layout under `apps/`/`packages/`, no
             `docker-compose.yml`, no `.env.example`. README is a skeleton: every technical
             value is `TBD` on purpose, nothing was invented.
 Broken:     Nothing runs yet — there is no code.
 Contracts:  Git workflow locked (§7). License = MIT, pending Track 02 verification.
             Everything in §6 is still TBD.
-Next:       **QVAC feasibility spike (board item 1) before anything else.** Then create
-            the GitHub repo, then the repo skeleton + synthetic producer.
+Next:       **QVAC feasibility spike (board item 1) before anything else.** Then the
+            `apps/`+`packages/` layout and the synthetic producer.
 
 ### 2026-09-09 — Claude (Opus 5) — bootstrap
 Did:        Read `SOVEREIGN_SENTINEL_SPEC.md` in full; created this `agents.md` as the shared agent-memory / handoff document.
