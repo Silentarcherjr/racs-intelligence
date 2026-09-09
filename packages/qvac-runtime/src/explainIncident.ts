@@ -1,12 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  close,
-  completion,
-  HEALTHCARE_4B_MEDICAL_Q4_K_M,
-  loadModel,
-  unloadModel,
-} from "@qvac/sdk";
+import { close, completion, loadModel, unloadModel } from "@qvac/sdk";
 import {
   isAnalystResponse,
   type AnalystResponse,
@@ -18,16 +12,37 @@ const MODEL_FILENAME = "medpsy-4b-q4_k_m-imat.gguf";
 
 let modelIdPromise: Promise<string> | undefined;
 
-function modelSrc(): string | typeof HEALTHCARE_4B_MEDICAL_Q4_K_M {
+/**
+ * Resolves the model file on local disk, or fails.
+ *
+ * There is deliberately no download path. The SDK offers a constant that fetches
+ * the weights over the network, and using it would contradict the product:
+ * AGENTS.md §2 requires weights to load from disk, forbids pulling models at
+ * demo time, and demands the demo survive Wi-Fi being switched off — which is
+ * also our cheapest zero-egress proof. A silent 2.5 GB download in front of a
+ * jury would undo the entire argument.
+ *
+ * So: fail loudly, and say exactly which file is missing and where it belongs.
+ */
+function modelSrc(): string {
   const dir = process.env["QVAC_MODELS_DIR"];
-  if (dir) {
-    const local = join(dir, MODEL_FILENAME);
-    if (existsSync(local)) return local;
-    console.error(
-      `[qvac-runtime] QVAC_MODELS_DIR is set but ${MODEL_FILENAME} was not found at ${local}`,
+  if (!dir) {
+    throw new Error(
+      `[qvac-runtime] QVAC_MODELS_DIR is not set.\n` +
+        `  Sovereign Sentinel never downloads model weights — they must already be on disk.\n` +
+        `  Point QVAC_MODELS_DIR at the directory containing ${MODEL_FILENAME}.\n` +
+        `  See .env.example and AGENTS.md §6.`,
     );
   }
-  return HEALTHCARE_4B_MEDICAL_Q4_K_M;
+  const local = join(dir, MODEL_FILENAME);
+  if (!existsSync(local)) {
+    throw new Error(
+      `[qvac-runtime] model weights not found: ${local}\n` +
+        `  Expected ${MODEL_FILENAME} (qvac/MedPsy-4B-GGUF, quantization q4_k_m-imat).\n` +
+        `  Download it once, ahead of time — never during a demo run.`,
+    );
+  }
+  return local;
 }
 
 async function ensureModel(): Promise<string> {
@@ -41,9 +56,9 @@ async function ensureModel(): Promise<string> {
         reasoning_budget: 0,
       },
       onProgress: (p) => {
-        const mb = (n: number) => (n / 1e6).toFixed(1);
+        // Local disk load, not a download — the weights are already here.
         process.stderr.write(
-          `\r[qvac-runtime] loading MedPsy-4B ${p.percentage.toFixed(0)}% (${mb(p.downloaded)}/${mb(p.total)} MB)`,
+          `\r[qvac-runtime] loading MedPsy-4B from disk ${p.percentage.toFixed(0)}%`,
         );
         if (p.percentage >= 100) process.stderr.write("\n");
       },

@@ -13,6 +13,7 @@ import { analyzeWindow } from "@sentinel/threat-engine";
 import { sendIncident, sinkFromEnv } from "@sentinel/wazuh-adapter";
 import { BaselineStore, correlate, scoreAllSites } from "@sentinel/qoe-engine";
 import { ClickHouseWriter } from "@sentinel/clickhouse-adapter";
+import { closeRuntime, explainIncident } from "@sentinel/qvac-runtime";
 import { EventWindow } from "./window.js";
 
 function arg(name: string, fallback: string): string {
@@ -38,6 +39,24 @@ const storeEvents = process.argv.includes("--store-events");
 const sink = opts.alerts ? sinkFromEnv() : null;
 const baselines = new BaselineStore();
 
+/** Local QVAC explanations. Off by default: it needs the weights on disk. */
+const explain = process.argv.includes("--explain");
+const explainMinRisk = Number(arg("explain-min-risk", "70"));
+
+/**
+ * Inference is serialised.
+ *
+ * One model is loaded once and shared; firing several completions at it
+ * concurrently is a good way to make a demo stutter or worse. At roughly 5s per
+ * incident, queueing is also honest about what the machine is actually doing.
+ */
+let inferenceChain: Promise<unknown> = Promise.resolve();
+function serialise<T>(fn: () => Promise<T>): Promise<T> {
+  const next = inferenceChain.then(fn, fn);
+  inferenceChain = next.catch(() => undefined);
+  return next;
+}
+
 const window = new EventWindow(opts.windowSec);
 
 /** Risk at which we consider an incident worth reporting again. */
@@ -53,10 +72,23 @@ async function report(inc: Incident): Promise<void> {
     console.log(`    +${String(ev.weight).padStart(2)} [${ev.source}] ${ev.description}`);
   }
 
-  // ── Dev 2's integration point, still unwired ─────────────────────────────
-  // incident.explanation = await explainIncident(incident)   — QVAC, local only
-  // Left unwired on purpose: a fabricated explanation is worse than none, and
-  // the alert schema omits the field entirely when there is no analyst output.
+  // ── Local QVAC analysis ──────────────────────────────────────────────────
+  // The model explains the evidence; it never produces or alters a risk score.
+  // If it fails or returns something that does not validate, the incident goes
+  // out with no explanation rather than a fabricated one.
+  if (explain && inc.riskScore >= explainMinRisk) {
+    try {
+      const analysis = await serialise(() => explainIncident(inc));
+      inc.explanation = analysis.summary;
+      console.log(`  analyst: ${analysis.likely_scenario}`);
+      console.log(`           confidence ${analysis.confidence} · ${analysis.recommended_next_action}`);
+    } catch (err) {
+      console.error(`  ✗ local analysis failed for ${inc.id}:`, err);
+    }
+  }
+
+  // Persisted after analysis so the stored row carries the explanation.
+  ch?.writeIncident(inc);
 
   if (sink && inc.riskScore >= opts.alertMinRisk) {
     try {
@@ -82,7 +114,8 @@ async function main(): Promise<void> {
   console.log(
     `sentinel-agent · ${opts.broker} · topic ${opts.topic} · window ${opts.windowSec}s · ` +
     (sink ? `alerts→${sink.name} at risk ≥${opts.alertMinRisk}` : "alerts off") +
-    (ch ? " · clickhouse on" : ""),
+    (ch ? " · clickhouse on" : "") +
+    (explain ? ` · QVAC explains risk ≥${explainMinRisk}` : ""),
   );
 
   let received = 0;
@@ -121,7 +154,6 @@ async function main(): Promise<void> {
       }
     }
 
-    for (const inc of incidents) ch?.writeIncident(inc);
     if (storeEvents) for (const e of events) ch?.writeEvent(e);
     void ch?.flush().catch((err: unknown) =>
       console.error("  ✗ ClickHouse write failed:", err));
@@ -152,6 +184,7 @@ async function main(): Promise<void> {
     await consumer.disconnect();
     // Flush before exiting, or the final window silently never lands.
     await ch?.close().catch((err: unknown) => console.error("final flush failed:", err));
+    if (explain) await closeRuntime().catch(() => undefined);
     process.exit(0);
   };
   process.on("SIGINT", shutdown);

@@ -10,7 +10,8 @@
     "kafkajs": "^2.2.4",
     "@sentinel/wazuh-adapter": "0.1.0",
     "@sentinel/qoe-engine": "0.1.0",
-    "@sentinel/clickhouse-adapter": "0.1.0"
+    "@sentinel/clickhouse-adapter": "0.1.0",
+    "@sentinel/qvac-runtime": "0.1.0"
   },
   "scripts": {
     "build": "tsc --build",
