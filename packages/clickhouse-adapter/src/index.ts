@@ -13,6 +13,23 @@
 import type { DnsEvent, Incident } from "@sentinel/dns-schema";
 import type { Correlation, QoeResult, SiteBaseline } from "@sentinel/qoe-engine";
 
+/**
+ * Credentials, when the deployment has them.
+ *
+ * The ClickHouse Docker image assigns the `default` user a random password
+ * unless configured, so an unauthenticated client works against a native
+ * install and fails in a container. Sent as headers rather than in the URL so
+ * they never end up in a log line.
+ */
+export function clickhouseAuthHeaders(
+  env: NodeJS.ProcessEnv = process.env,
+): Record<string, string> {
+  const user = env["CLICKHOUSE_USER"];
+  const password = env["CLICKHOUSE_PASSWORD"];
+  if (!user) return {};
+  return { "X-ClickHouse-User": user, "X-ClickHouse-Key": password ?? "" };
+}
+
 const chTime = (iso: string): string =>
   new Date(iso).toISOString().replace("T", " ").replace("Z", "");
 
@@ -130,7 +147,7 @@ export class ClickHouseWriter {
       const res = await fetch(`${this.#url}/?query=${encodeURIComponent(query)}`, {
         method: "POST",
         body,
-        headers: { "content-type": "application/x-ndjson" },
+        headers: { "content-type": "application/x-ndjson", ...clickhouseAuthHeaders() },
       });
       if (!res.ok) {
         const detail = await res.text().catch(() => "");

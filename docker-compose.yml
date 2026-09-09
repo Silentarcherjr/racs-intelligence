@@ -1,9 +1,13 @@
 # Sovereign Sentinel — local stack.
 #
-# ⚠️ UNVERIFIED: written without Docker installed on the authoring machine.
-#    The Kafka path in this PR was verified against a native Apache Kafka 4.3.1
-#    broker on localhost:9092, not against this file. Whoever has Docker first:
-#    run it, fix what breaks, and drop this notice.
+# Verified end to end on 2026-09-09 (colima 0.10.3 / Docker 29.5.2, Apple
+# Silicon): all three services healthy, ClickHouse schema applied by the
+# entrypoint, Grafana datasource healthy, and ./scripts/demo.sh producing
+# 66 events → 6 incidents → 3 local explanations → 5 Wazuh alerts against it.
+#
+#   docker compose up -d
+#   ./scripts/bootstrap.sh
+#   ./scripts/demo.sh
 #
 # Everything binds to 127.0.0.1 — nothing on this stack is reachable off the
 # host (AGENTS.md §2: everything local, demo must survive Wi-Fi off).
@@ -39,6 +43,15 @@ services:
     ports:
       - "127.0.0.1:8123:8123"
       - "127.0.0.1:9000:9000"
+    environment:
+      # The official image generates a RANDOM password for `default` unless
+      # told otherwise, so a client with no credentials fails with
+      # "Authentication failed". A native install has no such default, which
+      # is why this only shows up in a container.
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sentinel}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-sentinel}
+      CLICKHOUSE_DB: sentinel
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
     volumes:
@@ -47,7 +60,7 @@ services:
       - ./infra/clickhouse/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - clickhouse-data:/var/lib/clickhouse
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]  # /ping needs no auth
       interval: 10s
       timeout: 5s
       retries: 10
@@ -67,6 +80,8 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sentinel}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-sentinel}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro

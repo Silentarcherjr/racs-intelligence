@@ -1,5 +1,11 @@
-# ClickHouse datasource. Requires the grafana-clickhouse-datasource plugin
-# (docker-compose installs it via GF_INSTALL_PLUGINS).
+# ClickHouse datasource. Requires the grafana-clickhouse-datasource plugin,
+# which docker-compose installs via GF_INSTALL_PLUGINS.
+#
+# NOTE: Grafana's provisioning interpolates ${VAR} but has NO default syntax.
+# Writing ${CLICKHOUSE_HOST:-clickhouse} does not fall back — it produces an
+# invalid host and the datasource fails health checks with "invalid server
+# host", which reads like a network problem rather than a config typo.
+# docker-compose therefore sets all three variables explicitly.
 apiVersion: 1
 datasources:
   - name: ClickHouse
@@ -8,9 +14,11 @@ datasources:
     access: proxy
     isDefault: true
     jsonData:
-      # host is the compose service name; use 127.0.0.1 for a native install.
-      host: ${CLICKHOUSE_HOST:-clickhouse}
+      host: ${CLICKHOUSE_HOST}
       port: 8123
       protocol: http
       secure: false
       defaultDatabase: sentinel
+      username: ${CLICKHOUSE_USER}
+    secureJsonData:
+      password: ${CLICKHOUSE_PASSWORD}
