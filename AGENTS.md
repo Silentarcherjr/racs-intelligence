@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **vertical slice complete end to end.**
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **12/13 Must Haves done; only the video is left.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -157,9 +157,9 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 11 | SOC↔NOC correlation | **DONE ✅** | Claude (Dev 3's lane) | spec §11 |
 | 12 | Active investigator + sandbox | NOT STARTED | — | spec §8, §9 |
 | 13 | VisionPsy path | NOT STARTED | Anthony (Dev 2) | **Runtime already proven** (238 tok/s, TTFT ~0.8 s). Track 02 is now realistically claimable. Still to build: the sandbox → screenshot → VisionPsy → evidence-fusion flow. |
-| 14 | Analyst UI / "Ask Sentinel" | NOT STARTED | — | spec §12, §24 |
-| 15 | README + docs + track mapping | NOT STARTED | — | spec §33 |
-| 16 | Demo scripts (deterministic) | NOT STARTED | — | spec §29 |
+| 14 | Analyst UI | **DONE ✅** | Dev 2 (`frictionspp-svg`) | `apps/analyst-ui` on `127.0.0.1:3001`. Reads live ClickHouse data. "Ask Sentinel" (spec §12) is still not built. |
+| 15 | README + docs | **DONE ✅** | Claude | All 21 sections of spec §33 filled from measured values. `docs/ZERO_EGRESS.md` + `docs/ONBOARDING.md`. Missing: ARCHITECTURE, THREAT_MODEL, TRACK_MAPPING, DEMO. |
+| 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
 | 17 | Zero-egress proof | **DONE ✅** | Claude | Three layers: in-process socket guard (`packages/egress-guard`, armed unconditionally), OS-level `lsof` check (`scripts/verify-zero-egress.sh`, passing), and the Wi-Fi-off test. `docs/ZERO_EGRESS.md` states the claim precisely and lists what it does **not** prove. Never says "air-gapped" — there is a test for that. |
 | 18 | Benchmarks (Track 02 only) | NOT STARTED | — | spec §22 |
 
@@ -315,6 +315,10 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
 - [ ] **`likely_scenario` can over-claim.** The committed demo output says "Automated
       botnet activity" for a typosquat, which the evidence does not support (spec §20
       rule 1). Real incidents came back accurate; watch it, don't block on it.
+- [ ] 🔴 **Record the 5-minute video.** The last remaining Must Have (spec §29, §31).
+- [ ] 🔴 **Nobody has run `docker-compose.yml`.** Kafka, ClickHouse and Grafana were all
+      verified natively on Dev 1's machine. Until someone with Docker runs it, the jury
+      cannot reproduce the project — and spec §38 requires that.
 - [ ] **Make the repo public before submitting** (or grant jury access). Spec §38 requires
       submission links to work without credentials.
 - [ ] Verify MIT is acceptable if Track 02 is claimed (spec §34 says verify, don't assume).
@@ -374,6 +378,37 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — demo, README, UI merged (PRs #9, #8)
+Did:        Wrote `scripts/bootstrap.sh` and `scripts/demo.sh`, and the full README —
+            all 21 sections of spec §33 from measured values, not estimates. Merged Dev 2's
+            analyst UI (PR #8) after fixing two bugs in it.
+            **Four bugs found by running things rather than reading them:**
+            (1) the demo was not deterministic — the shared Kafka topic accumulates every
+            previous run, and duplicated timestamps corrupt beaconing interval variance, so
+            6 incidents silently became 5; now a throwaway topic per run;
+            (2) SIGTERM during inference tore the QVAC worker down under in-flight calls,
+            surfacing as a deterministic fallback that looks exactly like the model having
+            nothing to say — the agent now drains queued analysis before unloading;
+            (3) `sleep "${EXPLAIN:+45}${EXPLAIN:-8}"` expands to `sleep 45--explain`
+            because `${VAR:-default}` yields the VALUE when set;
+            (4) the UI's ClickHouse client sliced `JSONCompactEachRowWithNamesAndTypes`
+            from index 1, turning the types line into a bogus first row in every table.
+            Also moved the UI off port 3000, which docker-compose gives to Grafana.
+Did not:    No video. No Active Evidence Acquisition, no VisionPsy flow, no "Ask Sentinel".
+            **`docker-compose.yml` has still never been run by anyone.**
+Broken:     Nothing known. 21/21 tests, build green.
+Contracts:  Analyst UI on `127.0.0.1:3001`. Demo creates a per-run Kafka topic
+            `dns.events.demo-<epoch>`.
+Next:       **The video is the last Must Have.** Everything it needs now exists:
+            `./scripts/demo.sh` is deterministic, the README is complete, and
+            `./scripts/verify-zero-egress.sh` is the on-camera proof. After that, the
+            highest-value remaining item is someone with Docker validating the compose file.
+
+**Note for Dev 2:** you rewrote the `modelSrc()` zero-egress fix that was already merged
+in PR #6 and flagged as done in §8. Check §4 and §8 before starting — that is what they
+are for. Also `git merge origin/main` before opening a PR: three branches so far have
+predated `main` and silently dropped a package from the build.
 
 ### 2026-09-09 — Claude (Opus 5) — zero-egress enforced and proven (PR #7)
 Did:        Made zero-egress a mechanism rather than a promise. `packages/egress-guard`
