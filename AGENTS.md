@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — vertical slice streaming end to end.
+**Last updated:** 2026-09-09 by Claude (Opus 5) — full Track 04 pipeline on `main`.
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -140,12 +140,12 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 3 | Kafka + Vector | **PARTIAL** | Anthony (Dev 1) | **Kafka verified** against a real Apache Kafka 4.3.1 broker (native, KRaft). `docker-compose.yml` has the Kafka service but is **UNVERIFIED** — no Docker on Dev 1's machine. **Vector is not in the path**: the producer writes to Kafka directly. |
 | 4 | Sentinel consumer + feature engine | **DONE ✅** | Anthony (Dev 1) | `apps/sentinel-agent` consumes the topic into a bounded sliding window and re-analyses on a timer. `packages/feature-engine` has the lexical and behavioral features. |
 | 5 | Threat engine (4 detectors) | **DONE ✅** | Anthony (Dev 1) | DGA, typosquatting, tunneling, beaconing. 6 incidents from the fixture, no false positives on the 24 benign events, 5/5 regression tests. All scoring is a weighted sum of evidence — no model touches a risk number. |
-| 6 | QVAC local analyst (explanations) | **CLAIMED — awaiting push** | Dev 2 | Reported complete on `feature/qvac` (`explainIncident()`, MedPsy-4B q4_k_m-imat, `enable_thinking:false`, spec §20 prompt, fallback when `isAnalystResponse` fails). **The branch is not on the remote yet — unverified by anyone else.** |
-| 7 | Wazuh adapter | IN PROGRESS | Claude (crossing into Dev 3's lane — see §8) | local compatible endpoint first, real Wazuh second |
-| 8 | QoE engine + site baselines | NOT STARTED | — | spec §7 MVP-5, §14 |
-| 9 | ClickHouse writer | NOT STARTED | — | |
-| 10 | Grafana dashboard | NOT STARTED | — | QoE per site/zone |
-| 11 | SOC↔NOC correlation | NOT STARTED | — | spec §11 |
+| 6 | QVAC local analyst (explanations) | **DONE ✅** | Dev 2 | Merged (PR #4) and **independently verified by running it**: ~15s cold load once, then **~5s per incident**. Scenarios were accurate and evidence-grounded against real incidents. ⚠️ Known issue in §8: it downloads the model when weights are missing. |
+| 7 | Wazuh adapter | **DONE ✅** | Claude (Dev 3's lane) | File sink (logcollector JSON-lines) + local HTTP receiver + real Wazuh decoder/rules in `infra/wazuh/`. Refuses non-loopback hosts. |
+| 8 | QoE engine + site baselines | **DONE ✅** | Claude (Dev 3's lane) | spec §7 MVP-5, §14 |
+| 9 | ClickHouse writer | **DONE ✅** | Claude (Dev 3's lane) | |
+| 10 | Grafana dashboard | **DONE ✅** | Claude (Dev 3's lane) | QoE per site/zone |
+| 11 | SOC↔NOC correlation | **DONE ✅** | Claude (Dev 3's lane) | spec §11 |
 | 12 | Active investigator + sandbox | NOT STARTED | — | spec §8, §9 |
 | 13 | VisionPsy path | NOT STARTED | Anthony (Dev 2) | **Runtime already proven** (238 tok/s, TTFT ~0.8 s). Track 02 is now realistically claimable. Still to build: the sandbox → screenshot → VisionPsy → evidence-fusion flow. |
 | 14 | Analyst UI / "Ask Sentinel" | NOT STARTED | — | spec §12, §24 |
@@ -300,9 +300,18 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
       pulling models at demo time. Order matters — **MedPsy first** (it is on the vertical
       slice, board item 6), VisionPsy second (item 13). The Track 02 *claim* is still a
       separate, later decision.
-- [ ] **Port the QVAC runner into the repo** as `packages/qvac-runtime/`. Today the
-      working code lives in the external test bench; the repo must be reproducible
-      (spec §38) without that folder.
+- [x] ~~Port the QVAC runner into the repo~~ — done, `packages/qvac-runtime/` (PR #4).
+- [ ] 🔴 **`explainIncident()` downloads the model when weights are missing.** If
+      `QVAC_MODELS_DIR` is unset or the file is absent it falls back to the SDK constant
+      `HEALTHCARE_4B_MEDICAL_Q4_K_M`, which pulls over the network. That contradicts §2:
+      weights load from disk, no pull at demo time, and the demo must survive Wi-Fi being
+      off. **It should fail loudly instead.** Dev 2's fix.
+- [ ] **Wire `explainIncident()` into `apps/sentinel-agent`** at the marked integration
+      point. Load the model at startup and explain only high-risk incidents — at ~5s each,
+      explaining all six costs ~45s.
+- [ ] **`likely_scenario` can over-claim.** The committed demo output says "Automated
+      botnet activity" for a typosquat, which the evidence does not support (spec §20
+      rule 1). Real incidents came back accurate; watch it, don't block on it.
 - [ ] **Make the repo public before submitting** (or grant jury access). Spec §38 requires
       submission links to work without credentials.
 - [ ] Verify MIT is acceptable if Track 02 is claimed (spec §34 says verify, don't assume).
@@ -362,6 +371,29 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — Track 04 complete on main (PRs #3, #4, #5)
+Did:        Built and merged the Wazuh adapter, the QoE engine with per-site baselines,
+            the SOC↔NOC correlation, the ClickHouse writer and the Grafana dashboards.
+            **Verified against real services, not mocks:** Kafka 4.3.1, ClickHouse 26.8.2,
+            Grafana 13.2.1, all local. Reviewed and merged Dev 2's PR #4 by running it.
+            **Three bugs caught that the tests had not:** a site that stayed degraded
+            taught itself degraded was normal (EWMA baseline absorbed sustained faults —
+            a broken resolver reported "excellent", silently); the agent re-inserted the
+            same window every few seconds so every Grafana panel would have double-counted;
+            and PR #4 as proposed removed `wazuh-adapter` from `tsc --build` because its
+            branch predated PR #3.
+Did not:    Did not wire `explainIncident()` into the agent. Did not fix the model-download
+            fallback (§8, Dev 2's code). `docker-compose.yml` remains **UNVERIFIED** — no
+            Docker on this machine; ClickHouse and Grafana were verified natively.
+            No analyst UI, no README content, no demo scripts, no zero-egress proof.
+Broken:     Nothing known on `main`. Kafka and ClickHouse are running natively on Dev 1's
+            machine — that is **not** how the team will run them; the compose file still
+            needs someone with Docker.
+Contracts:  ClickHouse at `127.0.0.1:8123`, database `sentinel`, 5 tables. Grafana
+            dashboard uid `sentinel-dns`, datasource uid `sentinel-clickhouse`.
+Next:       Analyst UI (board item 14) and the README — both are wide open and block
+            nothing. Then wire the QVAC explanation into the agent.
 
 ### 2026-09-09 — Claude (Opus 5) — streaming slice (PRs #1, #2)
 Did:        Built and merged the detection half of the vertical slice.
