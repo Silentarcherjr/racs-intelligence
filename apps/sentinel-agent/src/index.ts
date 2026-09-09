@@ -22,6 +22,7 @@ import {
   renderDomain,
 } from "@sentinel/evidence-engine";
 import { EventWindow } from "./window.js";
+import { noteDecision, noteEvents, noteInference, noteRender, startStatusServer } from "./status.js";
 
 quietKafkaTimeoutWarning();
 
@@ -123,7 +124,12 @@ async function report(inc: Incident): Promise<void> {
   // out with no explanation rather than a fabricated one.
   if (explain && inc.riskScore >= explainMinRisk) {
     try {
-      const analysis = await serialise(() => explainIncident(inc));
+      const analysis = await serialise(async () => {
+        const t0 = Date.now();
+        const r = await explainIncident(inc);
+        noteInference("text", Date.now() - t0);
+        return r;
+      });
       inc.explanation = analysis.summary;
       say(`  analyst: ${analysis.likely_scenario}`);
       say(`           confidence ${analysis.confidence} · ${analysis.recommended_next_action}`);
@@ -140,6 +146,7 @@ async function report(inc: Incident): Promise<void> {
     const domain = inc.domains[0];
     if (decision.action === "LOCAL_RENDER" && domain) {
       say(`  investigating: ${decision.rationale}`);
+      noteDecision(domain, decision.state, decision.action, decision.rationale);
       const before = inc.riskScore;
       try {
         // Through the same queue as the text model: two models competing for
@@ -147,9 +154,15 @@ async function report(inc: Incident): Promise<void> {
         const render = await serialise(() => renderDomain(domain, {
           hostResolverRules: process.env["SANDBOX_RESOLVER_RULES"],
         }));
+        noteRender(render.renderMs);
         say(`  rendered in an isolated browser · ${render.renderMs} ms · ${render.screenshotPath}`);
 
-        const findings = await serialise(() => analyzeScreenshot(render.screenshotPath));
+        const findings = await serialise(async () => {
+          const t = Date.now();
+          const r = await analyzeScreenshot(render.screenshotPath);
+          noteInference("vision", Date.now() - t);
+          return r;
+        });
         say(`  VisionPsy: ${findings.description}`);
 
         Object.assign(inc, fuseVisionIntoIncident(inc, render, findings));
@@ -185,6 +198,7 @@ async function main(): Promise<void> {
   });
   const consumer = kafka.consumer({ groupId: opts.group });
 
+  startStatusServer();
   await consumer.connect();
   await consumer.subscribe({ topic: opts.topic, fromBeginning: opts.fromBeginning });
   console.log(
@@ -201,6 +215,7 @@ async function main(): Promise<void> {
     if (events.length === 0) return;
 
     const incidents = analyzeWindow(events);
+    noteEvents(received, events.length, incidents.length);
     let shown = 0;
     for (const inc of incidents) {
       const prev = reported.get(inc.id);
