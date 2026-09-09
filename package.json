@@ -1,0 +1,19 @@
+{
+  "name": "sovereign-sentinel",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Zero-egress local AI security analyst for DNS telemetry",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=22.17" },
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --build --force",
+    "clean": "tsc --build --clean"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2"
+  }
+}

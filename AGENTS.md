@@ -115,13 +115,18 @@ Useful spec sections (do not re-read the whole file):
 
 ### Repository status
 
-Repo is live on GitHub (private) with `main` pushed. It contains **docs only** — spec,
-this file, `README` skeleton, `LICENSE`, `docs/ONBOARDING.md`, ignore rules. **No
-application code, no `apps/`/`packages/` layout, no `docker-compose.yml`, no package
-manifests.**
+Repo is live on GitHub (private). The **skeleton is in place and compiles**: npm
+workspaces, TypeScript project references, `@sentinel/dns-schema` with every shared type
+from spec §19, and a committed 66-event fixture so all four lanes can work in parallel
+without waiting for Kafka.
 
-The one thing that *is* proven is **local QVAC inference** (board item 1, numbers below).
-Everything else on the board is `NOT STARTED`.
+```
+npm install && npm run build     # verified green 2026-09-09
+```
+
+Two things are proven: **local QVAC inference** (item 1) and **the build** (item 0).
+Everything else on the board is `NOT STARTED` — there is no detection logic, no stream,
+no storage and no UI yet. `apps/*` and the other `packages/*` are empty directories.
 
 ### Build board
 
@@ -129,7 +134,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 
 | # | Component | Status | Owner / Agent | Notes |
 |---|---|---|---|---|
-| 0 | Repo skeleton + git + toolchain | IN PROGRESS | Claude | Repo pushed to GitHub, 3 collaborators invited, `docs/ONBOARDING.md` written. **Still missing:** `apps/`+`packages/` layout (spec §18), package manifests, `docker-compose.yml`, `.env.example`. |
+| 0 | Repo skeleton + git + toolchain | **DONE ✅** | Claude | npm workspaces + TS project references. `apps/`+`packages/` layout per spec §18, `@sentinel/dns-schema` with all spec §19 types, 66-event fixture. `npm install && npm run build` verified green. **Still missing:** `docker-compose.yml`, `.env.example` — Dev 3's lane. |
 | 1 | **QVAC feasibility spike** | **DONE ✅** | Anthony (Dev 2) | **Verified with real numbers — see "QVAC: verified" below.** 25/25 QVAC models run locally on Apple Silicon. The project's single fatal risk is retired. |
 | 2 | Synthetic DNS producer | NOT STARTED | — | spec §13 — normal, DGA, typosquat, tunneling, beaconing, QoE degradation |
 | 3 | Kafka (or Redpanda) + Vector | NOT STARTED | — | must be a real stream |
@@ -222,7 +227,9 @@ Canonical TypeScript types (`DnsEvent`, `ThreatEvidence`, `Incident`, `QoeWindow
 | Contract | Value | Status |
 |---|---|---|
 | Primary language | TypeScript / Node (spec §16; Python only where it materially simplifies stats) | proposed, not locked |
-| Package manager / monorepo tool | — | TBD |
+| Package manager / monorepo tool | **npm workspaces** + TypeScript project references. No pnpm, no turbo — nobody should be debugging tooling at hour 40 | **LOCKED** |
+| Shared types package | `@sentinel/dns-schema` (`packages/dns-schema/`). **Dependency-free on purpose.** Every cross-module shape lives here; do not redefine `DnsEvent` etc. locally | **LOCKED** |
+| Test fixture | `datasets/synthetic/sample-events.json` — 66 events, seed `20260909`, byte-identical for everyone. Build against this until Kafka exists | **LOCKED** |
 | Kafka broker address | — | TBD |
 | Kafka topic — raw DNS events | — | TBD |
 | Kafka topic — incidents (if used) | — | TBD |
@@ -346,6 +353,30 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — skeleton + shared contracts
+Did:        Created the monorepo skeleton: npm workspaces + TS project references,
+            `apps/`+`packages/` per spec §18. Wrote `@sentinel/dns-schema` with all four
+            spec §19 types plus the spec §20 `AnalystResponse` and a structural guard —
+            **kept dependency-free on purpose** so four parallel installs cannot fight
+            over versions. Generated `datasets/synthetic/sample-events.json`: 66 events,
+            fixed seed, covering normal / DGA / typosquat / tunneling / beaconing / QoE
+            degradation. Verified `npm install && npm run build` green and checked all 66
+            fixture records against the `DnsEvent` shape. Locked tooling, schema package
+            and fixture in §6. Decided the two questions blocking the QVAC lane: SDK-only
+            inference, and download both models (~2.9 GB).
+Did not:    Wrote **no detection logic, no stream, no storage, no UI** — every other
+            `packages/*` and `apps/*` is an empty directory with a `.gitkeep`. No
+            `docker-compose.yml`, no `.env.example`. The fixture is **not** the synthetic
+            producer (board item 2, Dev 1) — it is a static file, and item 2 stays open.
+Broken:     Nothing. But note the QVAC runner still lives outside the repo, so the repo
+            is not yet reproducible on its own (§8).
+Contracts:  **LOCKED in §6:** npm workspaces; `@sentinel/dns-schema` as the only home for
+            cross-module types; the fixture path and seed; `@qvac/sdk` as the sole
+            inference path; both models on disk.
+Next:       Vertical slice, starting on `feature/stream-engine`: read the fixture →
+            feature extraction → the four detectors → an `Incident`. Kafka can come
+            after the detectors work against the fixture.
 
 ### 2026-09-09 — Claude (Opus 5) — QVAC spike recorded
 Did:        Verified the QVAC test bench at `/Users/anthonymorell/Documents/PRUEBA DE
