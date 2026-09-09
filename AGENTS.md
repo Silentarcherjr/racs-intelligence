@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — full Track 04 pipeline on `main`.
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **vertical slice complete end to end.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -124,9 +124,18 @@ without waiting for Kafka.
 npm install && npm run build     # verified green 2026-09-09
 ```
 
-Two things are proven: **local QVAC inference** (item 1) and **the build** (item 0).
-Everything else on the board is `NOT STARTED` — there is no detection logic, no stream,
-no storage and no UI yet. `apps/*` and the other `packages/*` are empty directories.
+**The full pipeline runs on `main`**, verified against real services (Kafka 4.3.1,
+ClickHouse 26.8.2, Grafana 13.2.1, all local):
+
+```
+synthetic DNS → Kafka → agent → detection → local QVAC explanation
+                              → Wazuh alert
+                              → QoE + SOC/NOC correlation → ClickHouse → Grafana
+```
+
+**What is still missing is everything the jury reads, not the machinery**: the README is
+a skeleton of `TBD`s, there are no demo scripts, no zero-egress proof, no analyst UI,
+and `docker-compose.yml` has never been run. See §8.
 
 ### Build board
 
@@ -140,7 +149,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 3 | Kafka + Vector | **PARTIAL** | Anthony (Dev 1) | **Kafka verified** against a real Apache Kafka 4.3.1 broker (native, KRaft). `docker-compose.yml` has the Kafka service but is **UNVERIFIED** — no Docker on Dev 1's machine. **Vector is not in the path**: the producer writes to Kafka directly. |
 | 4 | Sentinel consumer + feature engine | **DONE ✅** | Anthony (Dev 1) | `apps/sentinel-agent` consumes the topic into a bounded sliding window and re-analyses on a timer. `packages/feature-engine` has the lexical and behavioral features. |
 | 5 | Threat engine (4 detectors) | **DONE ✅** | Anthony (Dev 1) | DGA, typosquatting, tunneling, beaconing. 6 incidents from the fixture, no false positives on the 24 benign events, 5/5 regression tests. All scoring is a weighted sum of evidence — no model touches a risk number. |
-| 6 | QVAC local analyst (explanations) | **DONE ✅** | Dev 2 | Merged (PR #4) and **independently verified by running it**: ~15s cold load once, then **~5s per incident**. Scenarios were accurate and evidence-grounded against real incidents. ⚠️ Known issue in §8: it downloads the model when weights are missing. |
+| 6 | QVAC local analyst (explanations) | **DONE ✅ — wired into the agent** | Dev 2 + Claude | Merged (PR #4) and **independently verified by running it**: ~15s cold load once, then **~5s per incident**. Scenarios were accurate and evidence-grounded against real incidents. ⚠️ Known issue in §8: it downloads the model when weights are missing. |
 | 7 | Wazuh adapter | **DONE ✅** | Claude (Dev 3's lane) | File sink (logcollector JSON-lines) + local HTTP receiver + real Wazuh decoder/rules in `infra/wazuh/`. Refuses non-loopback hosts. |
 | 8 | QoE engine + site baselines | **DONE ✅** | Claude (Dev 3's lane) | spec §7 MVP-5, §14 |
 | 9 | ClickHouse writer | **DONE ✅** | Claude (Dev 3's lane) | |
@@ -301,14 +310,8 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
       slice, board item 6), VisionPsy second (item 13). The Track 02 *claim* is still a
       separate, later decision.
 - [x] ~~Port the QVAC runner into the repo~~ — done, `packages/qvac-runtime/` (PR #4).
-- [ ] 🔴 **`explainIncident()` downloads the model when weights are missing.** If
-      `QVAC_MODELS_DIR` is unset or the file is absent it falls back to the SDK constant
-      `HEALTHCARE_4B_MEDICAL_Q4_K_M`, which pulls over the network. That contradicts §2:
-      weights load from disk, no pull at demo time, and the demo must survive Wi-Fi being
-      off. **It should fail loudly instead.** Dev 2's fix.
-- [ ] **Wire `explainIncident()` into `apps/sentinel-agent`** at the marked integration
-      point. Load the model at startup and explain only high-risk incidents — at ~5s each,
-      explaining all six costs ~45s.
+- [x] ~~model download / agent wiring~~ — **both done (PR #6).** Download path removed;
+      explanations are opt-in via `--explain`, thresholded at risk ≥70, serialised.
 - [ ] **`likely_scenario` can over-claim.** The committed demo output says "Automated
       botnet activity" for a typosquat, which the evidence does not support (spec §20
       rule 1). Real incidents came back accurate; watch it, don't block on it.
@@ -371,6 +374,26 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — vertical slice complete (PR #6)
+Did:        Wired `explainIncident()` into `apps/sentinel-agent` and **removed the model
+            download path** from `packages/qvac-runtime`. It was falling back to an SDK
+            constant that fetches weights over the network — a silent 2.5 GB download in
+            front of a jury would have undone the whole zero-egress argument. It now fails
+            immediately and names the missing file. Verified the complete pipeline with
+            weights loaded from local disk: risk 90/80/75 explained by MedPsy and the
+            explanation reached **both** the Wazuh alert and the ClickHouse row; risk
+            65/60 alerted with the field omitted rather than empty; risk 35 not alerted.
+Did not:    **No README content, no demo scripts, no zero-egress proof, no analyst UI, and
+            `docker-compose.yml` has still never been run** — nobody on the team has Docker
+            yet. These are now the only things between the project and a submission.
+Broken:     Nothing known. Kafka and ClickHouse run natively on Dev 1's machine, which is
+            not how the team or the jury will run them.
+Contracts:  `--explain` / `--explain-min-risk` (default 70) on the agent. `QVAC_MODELS_DIR`
+            is now **required** for explanations — there is no download fallback.
+Next:       README (spec §33 — 21 sections, all still TBD), deterministic demo scripts
+            (§29), and the zero-egress proof (§21). Those three are what the jury actually
+            sees; the machinery is done.
 
 ### 2026-09-09 — Claude (Opus 5) — Track 04 complete on main (PRs #3, #4, #5)
 Did:        Built and merged the Wazuh adapter, the QoE engine with per-site baselines,
