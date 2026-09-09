@@ -146,14 +146,31 @@ Copy `.env.example` to `.env` to change any endpoint.
 ## 10. Run instructions
 
 ```bash
-./scripts/demo.sh                    # full pipeline on the committed fixture
-./scripts/demo.sh dga                # one scenario at a time
-./scripts/demo.sh live               # open-ended generated stream
-./scripts/verify-zero-egress.sh      # the zero-egress proof
-npm test -w @sentinel/threat-engine  # detector regression tests
+npm run demo                    # full pipeline on the committed fixture
+npm run demo -- dga             # one scenario at a time
+npm run demo -- live            # open-ended generated stream
+npm test                        # 21 regression tests
 ```
 
-Grafana: <http://127.0.0.1:3000> → *Sovereign Sentinel — DNS Security & QoE*.
+These run on **macOS, Linux and Windows** — they are Node scripts, so Windows
+needs neither WSL nor Git Bash. `scripts/demo.sh` and `scripts/bootstrap.sh`
+are thin wrappers around the same code.
+
+`scripts/verify-zero-egress.sh` is the one exception: it inspects real sockets
+with `lsof`, which has no Windows equivalent worth faking. On Windows, run the
+demo and confirm the **SOVEREIGN MODE** panel reports zero blocked external
+connections — the in-process guard works everywhere.
+
+### Watching it work
+
+| | | |
+|---|---|---|
+| **Analyst UI** | <http://127.0.0.1:3001> | Incidents with full evidence, QoE per site, the SOC/NOC verdict, and an *Explain with QVAC* button. Refreshes every 4 s and pauses while a detail view is open. |
+| **Grafana** | <http://127.0.0.1:3000> | Ten panels, auto-refreshing every 10 s. Dashboard: *Sovereign Sentinel — DNS Security & QoE*. |
+
+Start the UI with `npm start -w @sentinel/analyst-ui`. For a live view rather
+than a replay, run `npm run demo -- live` and watch either surface update as
+events arrive.
 
 ## 11. Demo scenarios
 

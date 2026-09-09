@@ -110,7 +110,11 @@
   </style>
 </head>
 <body>
-  <h1>Sovereign Sentinel — Analyst UI</h1>
+  <h1>Sovereign Sentinel — Analyst UI
+    <span id="live" title="Polls ClickHouse; pauses while a detail view is open">
+      <span id="live-dot"></span><span id="live-text">live</span>
+    </span>
+  </h1>
   <p style="margin-bottom: 20px; color: #94a3b8;">Local-first DNS security. All analysis runs on-premise.</p>
 
   <h2>Incidents</h2>
@@ -169,7 +173,48 @@
     </div>
   </div>
 
+  <style>
+    /* Live indicator. Deliberately small: the data is the point, not the chrome. */
+    #live { font-size: 0.42em; font-weight: 500; vertical-align: middle;
+            margin-left: 0.9em; opacity: 0.75; letter-spacing: 0.06em;
+            text-transform: uppercase; }
+    #live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+                background: #35d07f; margin-right: 6px; vertical-align: baseline;
+                animation: pulse 2s ease-in-out infinite; }
+    #live.paused #live-dot { background: #999; animation: none; }
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }
+  </style>
+
   <script>
+    /**
+     * The pipeline is a live stream, so a static snapshot misrepresents it.
+     * Refresh pauses while a detail view is open — yanking the table out from
+     * under someone mid-read is worse than being a few seconds stale.
+     */
+    const REFRESH_MS = 4000;
+
+    function modalOpen() {
+      return document.getElementById("incident-modal").classList.contains("active");
+    }
+
+    function setLive(on) {
+      const el = document.getElementById("live");
+      el.classList.toggle("paused", !on);
+      document.getElementById("live-text").textContent = on ? "live" : "paused";
+    }
+
+    async function refreshAll() {
+      if (modalOpen()) { setLive(false); return; }
+      setLive(true);
+      try {
+        await Promise.all([loadIncidents(), loadQoE(), loadCorrelations()]);
+      } catch (err) {
+        // A refresh failing must not kill the loop, or the page dies silently
+        // the first time ClickHouse blinks.
+        console.error("refresh failed", err);
+      }
+    }
+
     async function loadIncidents() {
       const res = await fetch("/api/incidents");
       const incidents = await res.json();
@@ -304,9 +349,8 @@
       }
     }
 
-    loadIncidents();
-    loadQoE();
-    loadCorrelations();
+    refreshAll();
+    setInterval(refreshAll, REFRESH_MS);
   </script>
 </body>
 </html>
