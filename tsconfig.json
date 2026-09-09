@@ -1,11 +1,9 @@
 {
   "files": [],
   "references": [
-    {
-      "path": "./packages/dns-schema"
-    },
-    {
-      "path": "./apps/synthetic-producer"
-    }
+    { "path": "./packages/dns-schema" },
+    { "path": "./packages/feature-engine" },
+    { "path": "./packages/threat-engine" },
+    { "path": "./apps/synthetic-producer" }
   ]
 }
