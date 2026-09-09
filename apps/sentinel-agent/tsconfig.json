@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/egress-guard"
+    },
+    {
       "path": "../../packages/dns-schema"
     },
     {

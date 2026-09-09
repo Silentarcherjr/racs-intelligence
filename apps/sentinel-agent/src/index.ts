@@ -7,6 +7,9 @@
  * lanes' work and are deliberately not stubbed with fake output here.
  */
 
+// MUST be first: arms the egress guard before any module can open a socket.
+import "./egress.js";
+import { sovereignModePanel } from "@sentinel/egress-guard";
 import { Kafka, logLevel } from "kafkajs";
 import type { DnsEvent, Incident } from "@sentinel/dns-schema";
 import { analyzeWindow } from "@sentinel/threat-engine";
@@ -185,6 +188,11 @@ async function main(): Promise<void> {
     // Flush before exiting, or the final window silently never lands.
     await ch?.close().catch((err: unknown) => console.error("final flush failed:", err));
     if (explain) await closeRuntime().catch(() => undefined);
+    // The proof panel is printed from real counters, not from a constant.
+    console.log(sovereignModePanel({
+      "Current model": explain ? "qvac/MedPsy-4B-GGUF q4_k_m-imat" : "none loaded",
+      "Execution device": explain ? "Apple Silicon GPU (Metal), local" : "n/a",
+    }));
     process.exit(0);
   };
   process.on("SIGINT", shutdown);
