@@ -9,7 +9,7 @@
 
 // MUST be first: arms the egress guard before any module can open a socket.
 import "./egress.js";
-import { sovereignModePanel } from "@sentinel/egress-guard";
+import { quietKafkaTimeoutWarning, sovereignModePanel } from "@sentinel/egress-guard";
 import { Kafka, logLevel } from "kafkajs";
 import type { DnsEvent, Incident } from "@sentinel/dns-schema";
 import { analyzeWindow } from "@sentinel/threat-engine";
@@ -18,6 +18,8 @@ import { BaselineStore, correlate, scoreAllSites } from "@sentinel/qoe-engine";
 import { ClickHouseWriter } from "@sentinel/clickhouse-adapter";
 import { closeRuntime, explainIncident } from "@sentinel/qvac-runtime";
 import { EventWindow } from "./window.js";
+
+quietKafkaTimeoutWarning();
 
 function arg(name: string, fallback: string): string {
   const i = process.argv.indexOf(`--${name}`);
@@ -81,17 +83,32 @@ async function drainInference(timeoutMs = 120_000): Promise<void> {
 
 const window = new EventWindow(opts.windowSec);
 
+/**
+ * The status line is written with \r and no newline so it overwrites itself.
+ * Anything printed afterwards lands on the same physical line and shreds it —
+ * which is how three analyst explanations disappeared into a progress counter.
+ * Clear it before writing anything else.
+ */
+let statusLineOpen = false;
+function say(line: string): void {
+  if (statusLineOpen) {
+    process.stdout.write("\r" + " ".repeat(110) + "\r");
+    statusLineOpen = false;
+  }
+  console.log(line);
+}
+
 /** Risk at which we consider an incident worth reporting again. */
 const REPORT_DELTA = 5;
 const reported = new Map<string, number>();
 
 async function report(inc: Incident): Promise<void> {
   const bar = "█".repeat(Math.round(inc.riskScore / 5)).padEnd(20, "·");
-  console.log(`\n  ${bar} ${String(inc.riskScore).padStart(3)}  ${inc.classification}`);
-  console.log(`  site ${inc.siteId} · confidence ${inc.confidence} · hosts ${inc.sourceHosts.join(", ")}`);
-  console.log(`  domains: ${inc.domains.slice(0, 3).join(", ")}${inc.domains.length > 3 ? ` (+${inc.domains.length - 3})` : ""}`);
+  say(`\n  ${bar} ${String(inc.riskScore).padStart(3)}  ${inc.classification}`);
+  say(`  site ${inc.siteId} · confidence ${inc.confidence} · hosts ${inc.sourceHosts.join(", ")}`);
+  say(`  domains: ${inc.domains.slice(0, 3).join(", ")}${inc.domains.length > 3 ? ` (+${inc.domains.length - 3})` : ""}`);
   for (const ev of inc.evidence.slice(0, 3)) {
-    console.log(`    +${String(ev.weight).padStart(2)} [${ev.source}] ${ev.description}`);
+    say(`    +${String(ev.weight).padStart(2)} [${ev.source}] ${ev.description}`);
   }
 
   // ── Local QVAC analysis ──────────────────────────────────────────────────
@@ -102,8 +119,8 @@ async function report(inc: Incident): Promise<void> {
     try {
       const analysis = await serialise(() => explainIncident(inc));
       inc.explanation = analysis.summary;
-      console.log(`  analyst: ${analysis.likely_scenario}`);
-      console.log(`           confidence ${analysis.confidence} · ${analysis.recommended_next_action}`);
+      say(`  analyst: ${analysis.likely_scenario}`);
+      say(`           confidence ${analysis.confidence} · ${analysis.recommended_next_action}`);
     } catch (err) {
       console.error(`  ✗ local analysis failed for ${inc.id}:`, err);
     }
@@ -115,7 +132,7 @@ async function report(inc: Incident): Promise<void> {
   if (sink && inc.riskScore >= opts.alertMinRisk) {
     try {
       await sendIncident(inc, sink);
-      console.log(`  → alert sent to Wazuh sink (${sink.name})`);
+      say(`  → alert sent to Wazuh sink (${sink.name})`);
     } catch (err) {
       // A dropped security alert must never be silent.
       console.error(`  ✗ FAILED to deliver alert ${inc.id}:`, err);
@@ -154,6 +171,13 @@ async function main(): Promise<void> {
       void report(inc);
       shown++;
     }
+    // Console reporting is throttled to avoid noise, but the stored row must
+    // not be. An incident detected early (say, 4 beacon check-ins) keeps
+    // growing; if its risk does not move by REPORT_DELTA it is never
+    // re-printed, and without this its ClickHouse row would stay stale
+    // forever. ReplacingMergeTree collapses the rewrites.
+    for (const inc of incidents) ch?.writeIncident(inc);
+
     // ── QoE per site, then SOC↔NOC attribution (spec §7 MVP-5, §11) ───────
     const qoeResults = scoreAllSites(events, baselines);
     for (const qoe of qoeResults) {
@@ -167,11 +191,11 @@ async function main(): Promise<void> {
       const prev = reported.get(key);
       if (prev === undefined || Math.abs(qoe.window.score - prev) >= REPORT_DELTA) {
         reported.set(key, qoe.window.score);
-        console.log(`\n  QoE ${qoe.window.score}/100 (${qoe.grade}) · ${qoe.window.siteId}`);
-        for (const line of qoe.explanation) console.log(`    ${line}`);
+        say(`\n  QoE ${qoe.window.score}/100 (${qoe.grade}) · ${qoe.window.siteId}`);
+        for (const line of qoe.explanation) say(`    ${line}`);
         if (corr.verdict !== "UNKNOWN") {
-          console.log(`    verdict: ${corr.verdict} (correlation ${corr.correlationScore})`);
-          for (const r of corr.reasoning) console.log(`      ${r}`);
+          say(`    verdict: ${corr.verdict} (correlation ${corr.correlationScore})`);
+          for (const r of corr.reasoning) say(`      ${r}`);
         }
       }
     }
@@ -181,10 +205,16 @@ async function main(): Promise<void> {
       console.error("  ✗ ClickHouse write failed:", err));
 
     if (shown === 0) {
-      process.stdout.write(
-        `\r  ${received} events · window ${events.length} · ${incidents.length} incident(s) · ` +
-        `QoE ${qoeResults.map((q) => `${q.window.siteId}=${q.window.score}`).join(" ")}   `,
-      );
+      // Only on a terminal: \r overwrites a line on a TTY, but in a redirected
+      // log it is just a character, and the "cleared" line leaves 110 spaces
+      // of debris in front of every real message.
+      if (process.stdout.isTTY) {
+        process.stdout.write(
+          `\r  ${received} events · window ${events.length} · ${incidents.length} incident(s) · ` +
+          `QoE ${qoeResults.map((q) => `${q.window.siteId}=${q.window.score}`).join(" ")}   `,
+        );
+        statusLineOpen = true;
+      }
     }
   }, opts.analyzeEverySec * 1000);
 
