@@ -66,6 +66,10 @@ Sentinel does three things nothing else in the room does:
 - Risk scores stay deterministic and explainable. The model explains evidence; it does not produce opaque scores.
 - Structured model output is validated against a schema before use. Never trust raw model text.
 - The browser sandbox for visual investigation renders untrusted pages — keep it isolated, no credentials, no host network access (spec §9.3, §25).
+- **Everything runs local. No exceptions.** Model weights are loaded from disk and are
+  already downloaded — **no model pull at demo time.** Any local inference server binds
+  to `127.0.0.1`, never `0.0.0.0`. **The whole demo must survive Wi-Fi being switched
+  off** — that is both the rule and the cheapest zero-egress proof (spec §21).
 
 **Engineering priority order when you must trade off** (spec §39):
 `1 end-to-end correctness → 2 local QVAC inference → 3 Track 04 requirements → 4 stability → 5 explainability → 6 demo quality → 7 Track 05 positioning → 8 VisionPsy → 9 extras`
@@ -83,7 +87,9 @@ Sentinel does three things nothing else in the room does:
 | `README.md` | Jury-facing. **Skeleton only** — 21 required sections from spec §33, most still `TBD`. Owned by Dev 4. |
 | `LICENSE` | MIT. Chosen as permissive for a possible Track 02 claim — verify acceptance (§8). |
 | `.gitignore` / `.gitattributes` | Secrets, volumes, models, evidence excluded. `AGENTS.md` set to union-merge. |
-| `docs/` | *not created yet* — ARCHITECTURE, THREAT_MODEL, ZERO_EGRESS, TRACK_MAPPING, BENCHMARKS, DEMO. |
+| `docs/ONBOARDING.md` | How a new dev sets up their machine, plus the bootstrap prompt to paste into their agent. |
+| `docs/` (rest) | *not created yet* — ARCHITECTURE, THREAT_MODEL, ZERO_EGRESS, TRACK_MAPPING, BENCHMARKS, DEMO. |
+| **QVAC test bench** | `/Users/anthonymorell/Documents/PRUEBA DE MODELOS/` — **outside this repo, Dev 2's machine only.** 71 GB of weights, a `./qvac` CLI and the working runners. Not committable. See §4. |
 
 **Multi-tool setup.** This project is worked on by several models. `AGENTS.md` is the
 single source of truth; every tool reads it. Codex, Cursor, Aider and opencode pick it
@@ -104,15 +110,18 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — initial setup.
-**Hackathon hour:** ~0–2 (planning phase).
+**Last updated:** 2026-09-09 by Claude (Opus 5) — QVAC spike verified.
+**Hackathon hour:** ~2–4.
 
 ### Repository status
 
-Repo is live on GitHub (private) with `main` pushed. It contains **only docs so far** —
-spec, this file, `README` skeleton, `LICENSE`, ignore rules. **No application code, no
-`apps/`/`packages/` layout, no `docker-compose.yml`, no package manifests.** Everything
-on the board below except item 0 is `NOT STARTED`.
+Repo is live on GitHub (private) with `main` pushed. It contains **docs only** — spec,
+this file, `README` skeleton, `LICENSE`, `docs/ONBOARDING.md`, ignore rules. **No
+application code, no `apps/`/`packages/` layout, no `docker-compose.yml`, no package
+manifests.**
+
+The one thing that *is* proven is **local QVAC inference** (board item 1, numbers below).
+Everything else on the board is `NOT STARTED`.
 
 ### Build board
 
@@ -120,8 +129,8 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 
 | # | Component | Status | Owner / Agent | Notes |
 |---|---|---|---|---|
-| 0 | Repo skeleton + git + toolchain | IN PROGRESS | Claude | Repo created and pushed to GitHub; `.gitignore`, `.gitattributes`, `LICENSE`, `README` skeleton exist. **Still missing:** collaborators, `apps/`+`packages/` layout (spec §18), package manifests, `docker-compose.yml`, `.env.example`. |
-| 1 | **QVAC feasibility spike** | NOT STARTED | — | **Do this first.** Everything else is worthless if local inference does not run. Confirm SDK installs, a model loads, latency is tolerable. |
+| 0 | Repo skeleton + git + toolchain | IN PROGRESS | Claude | Repo pushed to GitHub, 3 collaborators invited, `docs/ONBOARDING.md` written. **Still missing:** `apps/`+`packages/` layout (spec §18), package manifests, `docker-compose.yml`, `.env.example`. |
+| 1 | **QVAC feasibility spike** | **DONE ✅** | Anthony (Dev 2) | **Verified with real numbers — see "QVAC: verified" below.** 25/25 QVAC models run locally on Apple Silicon. The project's single fatal risk is retired. |
 | 2 | Synthetic DNS producer | NOT STARTED | — | spec §13 — normal, DGA, typosquat, tunneling, beaconing, QoE degradation |
 | 3 | Kafka (or Redpanda) + Vector | NOT STARTED | — | must be a real stream |
 | 4 | Sentinel consumer + feature engine | NOT STARTED | — | spec §7 MVP-1/2 |
@@ -133,12 +142,46 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 10 | Grafana dashboard | NOT STARTED | — | QoE per site/zone |
 | 11 | SOC↔NOC correlation | NOT STARTED | — | spec §11 |
 | 12 | Active investigator + sandbox | NOT STARTED | — | spec §8, §9 |
-| 13 | VisionPsy path | NOT STARTED | — | **Track 02 only. Do not fake it.** Drop if unstable (spec §32). |
+| 13 | VisionPsy path | NOT STARTED | Anthony (Dev 2) | **Runtime already proven** (238 tok/s, TTFT ~0.8 s). Track 02 is now realistically claimable. Still to build: the sandbox → screenshot → VisionPsy → evidence-fusion flow. |
 | 14 | Analyst UI / "Ask Sentinel" | NOT STARTED | — | spec §12, §24 |
 | 15 | README + docs + track mapping | NOT STARTED | — | spec §33 |
 | 16 | Demo scripts (deterministic) | NOT STARTED | — | spec §29 |
 | 17 | Zero-egress proof | NOT STARTED | — | spec §21 — network capture / egress denial evidence |
 | 18 | Benchmarks (Track 02 only) | NOT STARTED | — | spec §22 |
+
+### QVAC: verified, with numbers
+
+Measured on **Apple M1 Max, 32 GB** by `./qvac smoke --preset all`
+(report `results/smoke-20260909-114541.json`, 2026-09-09 11:45). **25/25 models pass.**
+
+| Model key | Repo | Quantization | Speed | Role in Sentinel |
+|---|---|---|---|---|
+| `medpsy-4b-gguf` | `qvac/MedPsy-4B-GGUF` | `q4_k_m-imat` | **72.6 tok/s** | **Local analyst** (incident explanation) |
+| `medpsy-1.7b-gguf` | `qvac/MedPsy-1.7B-GGUF` | `q4_k_m-imat` | 140.4 tok/s | Fallback if latency bites under stream load |
+| `visionpsy-460m-flash-gguf` | `qvac/VisionPsy-Nano-460M-Flash-GGUFs` | `q4_k_m-imat` + mmproj `q8` | **238.0 tok/s**, TTFT ~0.8 s | **Visual investigation** (Track 02) |
+| `visionpsy-460m-gguf` | `qvac/VisionPsy-Nano-460M-GGUFs` | `q4_k_m-imat` + mmproj `q8` | 238.4 tok/s | Non-flash variant |
+
+**Three findings that change the plan — read these before touching the QVAC lane:**
+
+1. **MedPsy is the only usable instruct text model in the whole QVAC catalog.**
+   Genesis (all four) produces unusable output — repetition loops and exam-formatted
+   text — confirmed in bf16, fp32 and CPU: it is the model, not the environment.
+   AfriSLM/TranslateNano are translation; Fabric is a biomedical LoRA. So the "local DNS
+   security analyst" runs on **a clinically fine-tuned Qwen3**. It follows the
+   constrained JSON prompt from spec §20 fine, but **this must be declared honestly in
+   the README** (spec §33 items 6–7, §35). Do not hide it; stating it plainly is worth
+   more credibility than it costs.
+
+2. **⚠️ VisionPsy GGUFs do NOT run on Homebrew's `llama.cpp`.** They abort with
+   `unknown projector type: custom` — the nanoVLM `mmproj` uses a pixel-shuffle
+   connector upstream does not implement. Two engines work, both already built:
+   the **QVAC SDK** (`runners/qvac_node/vlm.mjs`, default, Metal) and a patched
+   `llama.cpp` fork (`--engine llamacpp`). **Do not spend hours rediscovering this.**
+
+3. **MedPsy reasons inside `<think>` by default** (it is Qwen3). If the token budget is
+   exhausted inside the reasoning block, the final answer comes back **empty**. Send
+   `enable_thinking: false` unless you deliberately want reasoning, and strip the
+   residual marker.
 
 ### The one milestone that matters first
 
@@ -162,7 +205,7 @@ inherits its owner's lane. Fill in the names below.
 | Dev | Owns | Files/dirs |
 |---|---|---|
 | **Dev 1** — _name TBD_ | Streaming + threat engine | `apps/synthetic-producer/`, `packages/dns-schema/`, `packages/feature-engine/`, `packages/threat-engine/` |
-| **Dev 2** — _name TBD_ | QVAC + evidence + vision | `packages/qvac-runtime/`, `packages/evidence-engine/`, vision path, `benchmarks/` |
+| **Dev 2** — **Anthony** (`Silentarcherjr`, `feature/qvac`) | QVAC + evidence + vision | `packages/qvac-runtime/`, `packages/evidence-engine/`, vision path, `benchmarks/` |
 | **Dev 3** — _name TBD_ | Data + QoE + integrations | `packages/qoe-engine/`, `packages/clickhouse-adapter/`, `packages/wazuh-adapter/`, `infra/` |
 | **Dev 4** — _name TBD_ | Frontend + integration + demo | `apps/analyst-ui/`, `scripts/`, `README.md`, `docs/`, video/submission |
 
@@ -185,7 +228,12 @@ Canonical TypeScript types (`DnsEvent`, `ThreatEvidence`, `Incident`, `QoeWindow
 | Kafka topic — incidents (if used) | — | TBD |
 | ClickHouse DB / table for QoE | — | TBD |
 | Wazuh endpoint + alert JSON shape | — | TBD |
-| QVAC model id + quantization | — | TBD (**must be declared for Track 02**) |
+| QVAC text analyst model | `qvac/MedPsy-4B-GGUF`, quantization `q4_k_m-imat` (file `medpsy-4b-q4_k_m-imat.gguf`) | **LOCKED** — verified 72.6 tok/s |
+| QVAC vision model | `qvac/VisionPsy-Nano-460M-Flash-GGUFs`, quantization `q4_k_m-imat`, mmproj `q8` | **LOCKED** — verified 238 tok/s |
+| Vision engine | QVAC SDK (`runners/qvac_node/vlm.mjs`). **Never Homebrew `llama.cpp`** — see §4 finding 2 | **LOCKED** |
+| Text inference engine | `llama.cpp` + Metal (GGUF). Integration path SDK-vs-`./qvac serve` still open — see §8 | proposed |
+| Model weights location | Env var `QVAC_MODELS_DIR` (not yet implemented). Weights are **never** committed — `.gitignore` blocks `models/` and `*.gguf` | TBD |
+| Hardware of record | Apple M1 Max, 32 GB (README §33 item 8) | recorded |
 | QVAC analyst prompt + response schema | spec §20 | to be implemented in `packages/qvac-runtime/` |
 | Env vars | `.env.example` | TBD |
 | Service ports | — | TBD |
@@ -233,16 +281,37 @@ safety net; if it leaves duplicated rows, clean them on `main`.
 
 Add here instead of guessing or editing another lane. Remove when resolved (and log the resolution).
 
-- [ ] **Create the GitHub repo and push.** `git init` + first commit are done locally, but
-      there is no remote yet. Add the other 3 as collaborators. Decide who owns `main`.
+- [ ] **Collaborators invited, waiting on acceptance** — `frictionspp-svg`, `LowCrime`,
+      `Ralu13` at <https://github.com/Silentarcherjr/sovereign-sentinel/invitations>.
+- [ ] **Integration path for QVAC: SDK vs `./qvac serve`.** `./qvac serve` exposes an
+      OpenAI-compatible API on `localhost:8080` — fastest to integrate and still
+      zero-egress because it is loopback. **But Track 02 requires `@qvac/sdk` as the
+      primary inference path**, and an "OpenAI-compatible" endpoint in a project whose
+      pitch is "no OpenAI" invites the wrong question from the jury. Recommendation:
+      integrate through the SDK; use `serve` only for local development.
+- [ ] **Only Dev 2's machine can run inference today.** The 71 GB catalog lives outside
+      the repo. Everyone else needs just the two models Sentinel uses — **≈2.9 GB total**
+      (MedPsy-4B-GGUF 2.5 GB + VisionPsy-Flash-GGUFs 393 MB), not 71 GB. Decide whether
+      the other devs pull them or whether QVAC work stays on Dev 2's machine.
+- [ ] **Port the QVAC runner into the repo** as `packages/qvac-runtime/`. Today the
+      working code lives in the external test bench; the repo must be reproducible
+      (spec §38) without that folder.
 - [ ] **Make the repo public before submitting** (or grant jury access). Spec §38 requires
       submission links to work without credentials.
 - [ ] Verify MIT is acceptable if Track 02 is claimed (spec §34 says verify, don't assume).
-- [ ] **QVAC SDK not yet validated on any team machine.** Highest-risk unknown. Blocks contract "QVAC model id".
+- [x] ~~QVAC SDK validated~~ — **done**, 25/25 models pass on Dev 2's M1 Max. Models
+      and quantizations are locked in §6.
 - [ ] Kafka vs Redpanda — pick one and freeze it in §6.
 - [ ] Wazuh: full deployment vs local compatible endpoint first (spec §16 says build the compatible endpoint first, integrate real Wazuh after).
-- [ ] Confirm whether Track 02 will be claimed. It carries extra obligations (`@qvac/sdk` for primary inference + RAG, declared model, declared quantization, benchmarks, open-source requirements). **Only claim it if all are satisfiable.**
-- [ ] Declare any pre-existing code base at submission (spec §38).
+- [ ] Confirm whether Track 02 will be claimed. **Now realistic**: VisionPsy runs via
+      `@qvac/sdk`, exact model + quantization are known, and `./qvac bench` covers the
+      benchmark requirement (spec §22). Remaining gates are the RAG requirement and the
+      open-source terms.
+- [ ] Declare any pre-existing code base at submission (spec §38). **Note in our favour:**
+      the QVAC test bench was built *inside* the build window — its files are timestamped
+      2026-09-09 09:57–11:48, after the 08:00 start — so it is hackathon work, not a
+      pre-existing base. The QVAC *models* are third-party (Tether AI Research) and go
+      under "third-party components" (README §33 item 16).
 
 ---
 
@@ -250,8 +319,10 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
 
 | Risk | Impact | Mitigation / fallback (spec §32) |
 |---|---|---|
-| QVAC SDK does not run locally or is too slow | Fatal — the thesis dies | Validate in hour 1. If slow: smaller model, shorter prompts, explain only high-risk incidents, cache explanations. |
-| VisionPsy unstable | Loses Track 02 only | Drop the track. **Never fake it.** Tracks 04+05+03 stand without it. |
+| ~~QVAC does not run locally~~ | ~~Fatal~~ | **RETIRED 2026-09-09.** 25/25 models verified locally at usable speed. |
+| ~~VisionPsy unstable~~ | ~~Loses Track 02~~ | **Largely retired.** Runtime proven at 238 tok/s. Residual risk is the *integration* (sandbox → screenshot → fusion), not the model. Still: never fake it. |
+| MedPsy is a clinical model doing security analysis | Credibility, if hidden | Declare it plainly in the README (§33, §35). Keep scores deterministic — the model only explains evidence, so its domain matters less. |
+| Only one machine can run inference | Bottlenecks the QVAC lane | The two needed models are ≈2.9 GB, not 71 GB — other devs can pull them cheaply. |
 | Wazuh install eats the hackathon | Loses a Track 04 requirement | Local Wazuh-compatible endpoint first, real integration after core works. |
 | Kafka instability | Breaks "real stream" claim | Redpanda, or a minimal local broker — but a genuine stream must remain. |
 | ClickHouse/Grafana time sink | Loses QoE visualization | Simplest possible table + one dashboard; do not over-model. |
@@ -275,6 +346,31 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — QVAC spike recorded
+Did:        Verified the QVAC test bench at `/Users/anthonymorell/Documents/PRUEBA DE
+            MODELOS/` against its own smoke report rather than trusting its README:
+            25/25 models pass, 71 GB on disk, M1 Max 32 GB. Read `catalog.py` to get the
+            exact default quantizations. Locked the two models Sentinel needs in §6,
+            recorded the measured speeds in §4, and wrote down three findings that would
+            otherwise cost another agent hours (MedPsy is the only usable instruct text
+            model; VisionPsy GGUFs break on Homebrew llama.cpp; MedPsy returns empty
+            output if `<think>` eats the token budget). Retired the project's top risk
+            in §9. Added the "everything runs local, demo survives Wi-Fi off" rule to §2.
+            Invited 3 collaborators. Wrote `docs/ONBOARDING.md`.
+Did not:    Wrote no application code — the user explicitly said not to start yet. Did
+            not port the QVAC runner into `packages/qvac-runtime/`; it still lives only
+            in the external test bench, which means **the repo is not yet reproducible
+            without Dev 2's machine**. Did not decide SDK vs `./qvac serve` (§8).
+Broken:     Nothing — but note there is still zero application code in this repo.
+Contracts:  **LOCKED in §6:** analyst = `qvac/MedPsy-4B-GGUF` @ `q4_k_m-imat`;
+            vision = `qvac/VisionPsy-Nano-460M-Flash-GGUFs` @ `q4_k_m-imat` + mmproj `q8`;
+            vision engine = QVAC SDK, never Homebrew llama.cpp. Hardware of record =
+            M1 Max 32 GB.
+Next:       Create the `apps/` + `packages/` layout, then the vertical slice: synthetic
+            producer → Kafka → consumer → features → detection → MedPsy explanation →
+            Wazuh-compatible alert. Resolve the SDK-vs-`serve` decision before writing
+            `packages/qvac-runtime/`.
 
 ### 2026-09-09 — Claude (Opus 5) — setup
 Did:        Renamed `agents.md` → `AGENTS.md` (the name other tools auto-detect) and added
