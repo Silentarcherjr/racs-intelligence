@@ -22,6 +22,9 @@
     },
     {
       "path": "../../packages/clickhouse-adapter"
+    },
+    {
+      "path": "../../packages/qvac-runtime"
     }
   ]
 }
