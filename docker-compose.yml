@@ -79,6 +79,14 @@ services:
       # on a loopback-only demo stack.
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Without this, opening :3000 lands on Grafana's own welcome page with
+      # its blog feed — a jury sees Grafana marketing instead of the product.
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/sentinel-dns.json
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # An external blog feed on a zero-egress demo is a bad look regardless.
+      GF_USERS_DEFAULT_THEME: dark
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-sentinel}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-sentinel}
