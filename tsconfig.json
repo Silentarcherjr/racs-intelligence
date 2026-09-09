@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/dns-schema" }
+    { "path": "./packages/dns-schema" },
+    { "path": "./packages/qvac-runtime" }
   ]
 }
