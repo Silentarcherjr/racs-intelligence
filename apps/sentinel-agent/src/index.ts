@@ -17,6 +17,10 @@ import { sendIncident, sinkFromEnv } from "@sentinel/wazuh-adapter";
 import { BaselineStore, correlate, scoreAllSites } from "@sentinel/qoe-engine";
 import { ClickHouseWriter } from "@sentinel/clickhouse-adapter";
 import { closeRuntime, explainIncident } from "@sentinel/qvac-runtime";
+import {
+  analyzeScreenshot, closeSandbox, closeVision, decideNextAction, fuseVisionIntoIncident,
+  renderDomain,
+} from "@sentinel/evidence-engine";
 import { EventWindow } from "./window.js";
 
 quietKafkaTimeoutWarning();
@@ -46,6 +50,8 @@ const baselines = new BaselineStore();
 
 /** Local QVAC explanations. Off by default: it needs the weights on disk. */
 const explain = process.argv.includes("--explain");
+/** Active evidence acquisition: render a suspicious domain and look at it. */
+const investigate = process.argv.includes("--investigate");
 const explainMinRisk = Number(arg("explain-min-risk", "70"));
 
 /**
@@ -126,6 +132,37 @@ async function report(inc: Incident): Promise<void> {
     }
   }
 
+  // ── Active evidence acquisition (spec §8) ────────────────────────────────
+  // Detection says a domain imitates a brand. That is not enough to separate a
+  // parked domain from a live credential-harvesting page — so go and look.
+  if (investigate) {
+    const decision = decideNextAction(inc);
+    const domain = inc.domains[0];
+    if (decision.action === "LOCAL_RENDER" && domain) {
+      say(`  investigating: ${decision.rationale}`);
+      const before = inc.riskScore;
+      try {
+        // Through the same queue as the text model: two models competing for
+        // one GPU is how a demo starts stuttering.
+        const render = await serialise(() => renderDomain(domain, {
+          hostResolverRules: process.env["SANDBOX_RESOLVER_RULES"],
+        }));
+        say(`  rendered in an isolated browser · ${render.renderMs} ms · ${render.screenshotPath}`);
+
+        const findings = await serialise(() => analyzeScreenshot(render.screenshotPath));
+        say(`  VisionPsy: ${findings.description}`);
+
+        Object.assign(inc, fuseVisionIntoIncident(inc, render, findings));
+        say(inc.riskScore === before
+          ? `  risk unchanged at ${inc.riskScore} — the visual evidence was inconclusive`
+          : `  risk ${before} → ${inc.riskScore} after local visual evidence`);
+      } catch (err) {
+        // An investigation that fails leaves the incident exactly as it was.
+        console.error(`  ✗ visual investigation failed for ${domain}:`, err);
+      }
+    }
+  }
+
   // Persisted after analysis so the stored row carries the explanation.
   ch?.writeIncident(inc);
 
@@ -154,7 +191,8 @@ async function main(): Promise<void> {
     `sentinel-agent · ${opts.broker} · topic ${opts.topic} · window ${opts.windowSec}s · ` +
     (sink ? `alerts→${sink.name} at risk ≥${opts.alertMinRisk}` : "alerts off") +
     (ch ? " · clickhouse on" : "") +
-    (explain ? ` · QVAC explains risk ≥${explainMinRisk}` : ""),
+    (explain ? ` · QVAC explains risk ≥${explainMinRisk}` : "") +
+    (investigate ? " · active investigation on" : ""),
   );
 
   let received = 0;
@@ -236,9 +274,11 @@ async function main(): Promise<void> {
     await consumer.disconnect();
     // Flush before exiting, or the final window silently never lands.
     await ch?.close().catch((err: unknown) => console.error("final flush failed:", err));
-    if (explain) {
+    if (explain || investigate) {
       await drainInference();
       await closeRuntime().catch(() => undefined);
+      await closeVision().catch(() => undefined);
+      await closeSandbox().catch(() => undefined);
     }
     // The proof panel is printed from real counters, not from a constant.
     console.log(sovereignModePanel({
