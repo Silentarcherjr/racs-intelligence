@@ -1,12 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  close,
-  completion,
-  HEALTHCARE_4B_MEDICAL_Q4_K_M,
-  loadModel,
-  unloadModel,
-} from "@qvac/sdk";
+import { close, completion, loadModel, unloadModel } from "@qvac/sdk";
 import {
   isAnalystResponse,
   type AnalystResponse,
@@ -18,16 +12,24 @@ const MODEL_FILENAME = "medpsy-4b-q4_k_m-imat.gguf";
 
 let modelIdPromise: Promise<string> | undefined;
 
-function modelSrc(): string | typeof HEALTHCARE_4B_MEDICAL_Q4_K_M {
+function modelSrc(): string {
   const dir = process.env["QVAC_MODELS_DIR"];
-  if (dir) {
-    const local = join(dir, MODEL_FILENAME);
-    if (existsSync(local)) return local;
-    console.error(
-      `[qvac-runtime] QVAC_MODELS_DIR is set but ${MODEL_FILENAME} was not found at ${local}`,
+  if (!dir) {
+    throw new Error(
+      `[qvac-runtime] QVAC_MODELS_DIR is not set. ` +
+      `Model weights must be loaded from disk — never downloaded at runtime. ` +
+      `Set QVAC_MODELS_DIR to the directory containing ${MODEL_FILENAME}.`,
     );
   }
-  return HEALTHCARE_4B_MEDICAL_Q4_K_M;
+  const local = join(dir, MODEL_FILENAME);
+  if (!existsSync(local)) {
+    throw new Error(
+      `[qvac-runtime] ${MODEL_FILENAME} not found at ${local}. ` +
+      `Model weights must be loaded from disk — never downloaded at runtime. ` +
+      `Download the model manually and place it in QVAC_MODELS_DIR.`,
+    );
+  }
+  return local;
 }
 
 async function ensureModel(): Promise<string> {

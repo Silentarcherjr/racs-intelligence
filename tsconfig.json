@@ -9,6 +9,7 @@
     { "path": "./packages/wazuh-adapter" },
     { "path": "./packages/clickhouse-adapter" },
     { "path": "./apps/synthetic-producer" },
-    { "path": "./apps/sentinel-agent" }
+    { "path": "./apps/sentinel-agent" },
+    { "path": "./apps/analyst-ui" }
   ]
 }
