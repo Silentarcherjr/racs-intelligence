@@ -1,6 +1,14 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/dns-schema" }
+    {
+      "path": "./packages/dns-schema"
+    },
+    {
+      "path": "./packages/feature-engine"
+    },
+    {
+      "path": "./packages/threat-engine"
+    }
   ]
 }
