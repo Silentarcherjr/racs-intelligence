@@ -57,3 +57,16 @@ test("incident ids are stable across runs", () => {
   const again = analyzeWindow(events);
   assert.deepEqual(incidents.map((i) => i.id), again.map((i) => i.id));
 });
+
+test("incidents are identical regardless of event arrival order", () => {
+  // Kafka delivers partitions in no guaranteed order. A detection that depends
+  // on arrival order produces a different incident id for the same attack,
+  // which silently breaks deduplication downstream.
+  const shuffled = [...events].reverse();
+  const a = analyzeWindow(events);
+  const b = analyzeWindow(shuffled);
+  assert.deepEqual(
+    a.map((i) => `${i.id}:${i.siteId}:${i.riskScore}`),
+    b.map((i) => `${i.id}:${i.siteId}:${i.riskScore}`),
+  );
+});

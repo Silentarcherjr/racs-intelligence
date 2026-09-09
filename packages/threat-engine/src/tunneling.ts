@@ -70,7 +70,7 @@ export function detectTunneling(events: DnsEvent[], cfg: DetectorConfig): Detect
     out.push({
       classification: "possible_tunneling",
       siteId: zone.siteId,
-      sourceHosts: zone.clientIps,
+      sourceHosts: [...zone.clientIps].sort(),
       domains: [zone.parentZone],
       evidence,
     });
