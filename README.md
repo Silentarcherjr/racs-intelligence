@@ -161,6 +161,21 @@ with `lsof`, which has no Windows equivalent worth faking. On Windows, run the
 demo and confirm the **SOVEREIGN MODE** panel reports zero blocked external
 connections — the in-process guard works everywhere.
 
+### Visual investigation (optional)
+
+The active-investigation path renders suspicious domains in a local sandbox, so
+it needs Chromium and the vision weights:
+
+```bash
+npx playwright install chromium
+```
+
+Then put `visionpsy-nano-460m-flash-q4_k_m-imat.gguf` and
+`mmproj-visionpsy-nano-460m-flash-q8.gguf` (393 MB together) in a directory and
+point `QVAC_VISION_MODELS_DIR` at it. Without them the pipeline runs normally;
+incidents simply carry no visual evidence, and the runtime panel says the vision
+model is not loaded.
+
 ### Watching it work
 
 | | | |
