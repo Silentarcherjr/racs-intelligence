@@ -132,11 +132,27 @@ export function detectTyposquat(events: DnsEvent[], cfg: DetectorConfig): Detect
       });
     }
 
+    // A campaign can touch several sites, and Kafka delivers partitions in no
+    // particular order — so the site must not depend on which event arrived
+    // first, or the same attack hashes to a different incident id each run.
+    const sites = [...new Set(evs.map((e) => e.siteId))].sort();
+    if (sites.length > 1) {
+      evidence.push({
+        type: "multi_site_spread",
+        source: "behavioral",
+        value: sites,
+        weight: 10,
+        description:
+          `Observed at ${sites.length} sites (${sites.join(", ")}) — the campaign is ` +
+          `not contained to one location.`,
+      });
+    }
+
     out.push({
       classification: "possible_typosquatting",
-      siteId: evs[0]!.siteId,
-      sourceHosts: hosts,
-      domains: [...new Set(evs.map((e) => e.qname))],
+      siteId: sites[0]!,
+      sourceHosts: [...hosts].sort(),
+      domains: [...new Set(evs.map((e) => e.qname))].sort(),
       evidence,
     });
   }

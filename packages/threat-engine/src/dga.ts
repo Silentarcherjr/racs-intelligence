@@ -33,7 +33,7 @@ export function detectDga(events: DnsEvent[], cfg: DetectorConfig): Detection[] 
       classification: "possible_dga",
       siteId: host.siteId,
       sourceHosts: [host.clientIp],
-      domains: failed.map((e) => e.qname).slice(0, 20),
+      domains: [...new Set(failed.map((e) => e.qname))].sort().slice(0, 20),
       evidence: [
         {
           type: "nxdomain_rate",

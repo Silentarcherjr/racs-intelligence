@@ -9,6 +9,12 @@
     },
     {
       "path": "./packages/threat-engine"
+    },
+    {
+      "path": "./apps/synthetic-producer"
+    },
+    {
+      "path": "./apps/sentinel-agent"
     }
   ]
 }
