@@ -160,7 +160,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 14 | Analyst UI / "Ask Sentinel" | NOT STARTED | — | spec §12, §24 |
 | 15 | README + docs + track mapping | NOT STARTED | — | spec §33 |
 | 16 | Demo scripts (deterministic) | NOT STARTED | — | spec §29 |
-| 17 | Zero-egress proof | NOT STARTED | — | spec §21 — network capture / egress denial evidence |
+| 17 | Zero-egress proof | **DONE ✅** | Claude | Three layers: in-process socket guard (`packages/egress-guard`, armed unconditionally), OS-level `lsof` check (`scripts/verify-zero-egress.sh`, passing), and the Wi-Fi-off test. `docs/ZERO_EGRESS.md` states the claim precisely and lists what it does **not** prove. Never says "air-gapped" — there is a test for that. |
 | 18 | Benchmarks (Track 02 only) | NOT STARTED | — | spec §22 |
 
 ### QVAC: verified, with numbers
@@ -374,6 +374,24 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — zero-egress enforced and proven (PR #7)
+Did:        Made zero-egress a mechanism rather than a promise. `packages/egress-guard`
+            patches Node's socket layer before any module can connect (side-effect import
+            placed first — a guard installed after the first connection proves nothing);
+            `scripts/verify-zero-egress.sh` checks real sockets with `lsof` below the JS
+            layer, audits the dependency tree for 12 cloud AI SDK names, and greps source
+            for external URLs; `docs/ZERO_EGRESS.md` sets out the claim, the allowed
+            endpoints, the code guards and an explicit "what this does not prove".
+            The system has exactly **two** external runtime dependencies: `kafkajs` and
+            `@qvac/sdk`. Script passes, 21/21 tests.
+Did not:    No README content, no demo scripts, no video, no analyst UI, no Active Evidence
+            Acquisition, no VisionPsy. `docker-compose.yml` still never run.
+Broken:     Nothing known.
+Contracts:  The agent now **always** arms the egress guard. If a new local service is added
+            outside loopback/RFC1918, `isLocalHost()` must be updated or it will be blocked.
+Next:       **12 of 13 Must Haves are done — only the video is left** (spec §31). It needs
+            the README (§33) and deterministic demo scripts (§29) first.
 
 ### 2026-09-09 — Claude (Opus 5) — vertical slice complete (PR #6)
 Did:        Wired `explainIncident()` into `apps/sentinel-agent` and **removed the model
