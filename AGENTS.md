@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **VisionPsy investigation works; needs wiring into the agent. Then the video.**
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **Everything is built and wired. Only the video remains.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -155,8 +155,8 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 9 | ClickHouse writer | **DONE ✅** | Claude (Dev 3's lane) | |
 | 10 | Grafana dashboard | **DONE ✅** | Claude (Dev 3's lane) | QoE per site/zone |
 | 11 | SOC↔NOC correlation | **DONE ✅** | Claude (Dev 3's lane) | spec §11 |
-| 12 | Active investigator + sandbox | **DONE ✅ (not wired)** | Claude | `packages/evidence-engine`. Deterministic action selection (spec §8.2), throwaway Chromium context, screenshot only. **Works in isolation; the agent does not call it yet.** |
-| 13 | VisionPsy path | **DONE ✅ (not wired)** | Claude | Verified: risk 64 → 89 on a rendered decoy page. ~2s render + ~5.5s for four vision calls. |
+| 12 | Active investigator + sandbox | **DONE ✅** | Claude | `packages/evidence-engine`. Deterministic action selection (spec §8.2), throwaway Chromium context, screenshot only. **Works in isolation; the agent does not call it yet.** |
+| 13 | VisionPsy path | **DONE ✅** | Claude | Verified: risk 64 → 89 on a rendered decoy page. ~2s render + ~5.5s for four vision calls. |
 | 14 | Analyst UI | **DONE ✅** | Dev 2 (`frictionspp-svg`) | `apps/analyst-ui` on `127.0.0.1:3001`. Reads live ClickHouse data. "Ask Sentinel" (spec §12) is still not built. |
 | 15 | README + docs | **DONE ✅** | Claude | All 21 sections of spec §33 filled from measured values. `docs/ZERO_EGRESS.md` + `docs/ONBOARDING.md`. Missing: ARCHITECTURE, THREAT_MODEL, TRACK_MAPPING, DEMO. |
 | 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
@@ -315,10 +315,7 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
 - [ ] **`likely_scenario` can over-claim.** The committed demo output says "Automated
       botnet activity" for a typosquat, which the evidence does not support (spec §20
       rule 1). Real incidents came back accurate; watch it, don't block on it.
-- [ ] 🔴 **Wire the investigation into `apps/sentinel-agent`.** Everything works and is
-      merged, but the agent never calls `decideNextAction`. **This is the single highest
-      value task left** — without it the demo does not tell the story the pitch promises.
-      Exactly what to do is in the handoff entry below.
+- [x] ~~Wire the investigation into the agent~~ — **done (PR #16).** Verified live: risk 80→100.
 - [ ] 🔴 **Record the 5-minute video.** The last remaining Must Have (spec §29, §31).
 - [x] ~~Nobody has run `docker-compose.yml`~~ — **verified end to end (PR #10)** on
       colima 0.10.3 / Docker 29.5.2. The jury can reproduce the project.
@@ -381,6 +378,28 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — investigation wired; feature-complete (PR #16)
+Did:        Wired `decideNextAction` → `renderDomain` → `analyzeScreenshot` →
+            `fuseVisionIntoIncident` into `apps/sentinel-agent`, and made `scripts/demo.mjs`
+            start the decoy site and set the sandbox resolver rules automatically.
+            **Verified in the live pipeline:** risk 80→100, 60→85, 55→80, 45→60, with each
+            alert carrying 2–3 pieces of visual evidence. Render 76–486 ms, four vision
+            calls ~5 s. Runs through the same `serialise()` queue as the text model, and
+            both models plus the sandbox close on shutdown after draining.
+Did not:    **The video.** That is now the only thing left. Also unbuilt: "Ask Sentinel"
+            (§12), Track 02 benchmarks doc (§22), and the remaining `docs/` files.
+Broken:     Nothing known. Note the vision model often answers "financial institution: no"
+            for a page it identifies as "Banco Aurora" — we report that verbatim rather
+            than overriding it, so `possible_phishing` promotion usually does not fire.
+            That is deliberate: correcting the model would make the evidence ours.
+Contracts:  `--investigate` on the agent. `QVAC_VISION_MODELS_DIR` and the decoy on
+            `127.0.0.1:8099`. Demo scenario for the visual story is `typosquat`.
+Next:       **Record the video.** Suggested run of show:
+              npm run demo -- typosquat     the investigation, on camera
+              npm run demo                   the full detection + QoE + correlation story
+              scripts/verify-zero-egress.sh  the proof, then switch Wi-Fi off and rerun
+            The analyst UI (3001) and Grafana (3000) both update live while it runs.
 
 ### 2026-09-09 — Claude (Opus 5) — VisionPsy investigation (PR #15)
 Did:        Built the differentiator: `packages/evidence-engine` (deterministic action
