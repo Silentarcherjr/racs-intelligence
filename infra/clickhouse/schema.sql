@@ -77,7 +77,13 @@ CREATE TABLE IF NOT EXISTS sentinel.dns_incidents
     recommended_action   String,
     -- Always 'local'. Written on every row so the zero-egress claim is
     -- auditable from the data itself, not just from the README.
-    analysis_location    LowCardinality(String) DEFAULT 'local'
+    analysis_location    LowCardinality(String) DEFAULT 'local',
+    -- Visual evidence, when the active investigator rendered the domain.
+    -- The path is local and stays local; only an analyst on this machine can
+    -- open it, which is the point.
+    screenshot_path      String DEFAULT '',
+    visual_description   String DEFAULT '',
+    visual_model         String DEFAULT ''
 )
 ENGINE = ReplacingMergeTree(updated_at)
 PARTITION BY toYYYYMMDD(created_at)

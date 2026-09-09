@@ -1,3 +1,5 @@
+import { createReadStream, existsSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { loadEnv } from "./env.js";
 
 // Before any other import reads process.env at module scope.
@@ -5,7 +7,6 @@ loadEnv();
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { queryClickHouse } from "./clickhouse.js";
 import { explainIncident } from "@sentinel/qvac-runtime";
@@ -19,6 +20,21 @@ const PORT = Number(process.env["PORT"] ?? 3001);
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
+
+  // Screenshots captured by the sandbox. Served read-only from out/evidence,
+  // with the filename sanitised — the one thing this server must never do is
+  // hand out arbitrary files because a path had ".." in it.
+  if (url.pathname.startsWith("/evidence/")) {
+    const name = basename(decodeURIComponent(url.pathname.slice("/evidence/".length)));
+    const file = join(process.cwd(), "out", "evidence", name);
+    if (/^[\w.-]+\.png$/.test(name) && existsSync(file)) {
+      res.writeHead(200, { "content-type": "image/png", "cache-control": "no-store" });
+      createReadStream(file).pipe(res);
+    } else {
+      res.writeHead(404).end();
+    }
+    return;
+  }
   const path = url.pathname;
 
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -30,7 +46,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
           incident_id, created_at, site_id, classification,
           risk_score, confidence, source_hosts, domains,
           evidence_types, evidence_weights, evidence_descriptions,
-          recommended_action
+          recommended_action, screenshot_path
         FROM sentinel.dns_incidents FINAL
         ORDER BY risk_score DESC
       `);
@@ -43,7 +59,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
           incident_id, created_at, site_id, classification,
           risk_score, confidence, source_hosts, domains,
           evidence_types, evidence_weights, evidence_descriptions,
-          explanation, recommended_action
+          explanation, recommended_action,
+          screenshot_path, visual_description, visual_model
         FROM sentinel.dns_incidents FINAL
         WHERE incident_id = '${id.replace(/'/g, "''")}'
       `);
