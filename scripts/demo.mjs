@@ -39,6 +39,11 @@ if (!(await portOpen(broker))) {
 
 const weights = modelPath();
 const explain = Boolean(weights && existsSync(weights));
+// Visual investigation needs the vision weights AND the decoy site.
+const visionDir = process.env["QVAC_VISION_MODELS_DIR"] ?? process.env["QVAC_MODELS_DIR"];
+const investigate = Boolean(visionDir &&
+  existsSync(join(visionDir, "visionpsy-nano-460m-flash-q4_k_m-imat.gguf")));
+
 let clickhouse = false;
 try { await clickhouseQuery("SELECT 1"); clickhouse = true; } catch { /* optional */ }
 
@@ -81,6 +86,7 @@ console.log(`
   topic        ${topic}
   storage      ${clickhouse ? "ClickHouse" : "none (QoE not persisted)"}
   local model  ${explain ? "MedPsy-4B q4_k_m-imat, on-device" : "not loaded (set QVAC_MODELS_DIR)"}
+  investigate  ${investigate ? "VisionPsy-Nano-460M-Flash, on-device" : "off (set QVAC_VISION_MODELS_DIR)"}
 
   Nothing below leaves this machine. Verify with scripts/verify-zero-egress.sh
   ─────────────────────────────────────────────────────────────────────────`);
@@ -96,11 +102,21 @@ await admin.disconnect();
 rmSync(join(ROOT, "out"), { recursive: true, force: true });
 start("packages/wazuh-adapter/dist/receiver.js", [], { quiet: true });
 
+if (investigate) {
+  // The decoy the sandbox will render. Loopback only; the demo cannot and must
+  // not browse the internet.
+  start("apps/phishing-demo/dist/index.js", [], { quiet: true });
+  process.env["SANDBOX_RESOLVER_RULES"] ??=
+    `MAP *.example 127.0.0.1:${process.env["PHISHING_DEMO_PORT"] ?? 8099}`;
+  await sleep(1200);
+}
+
 process.env["WAZUH_WEBHOOK_URL"] ??= "http://127.0.0.1:8081/";
 start("apps/sentinel-agent/dist/index.js", [
   "--group", group, "--topic", topic, "--interval", "3", "--window", "3600",
   ...(clickhouse ? ["--clickhouse"] : []),
   ...(explain ? ["--explain"] : []),
+  ...(investigate ? ["--investigate"] : []),
 ]);
 await sleep(3000);
 
@@ -119,6 +135,6 @@ await new Promise((res) => {
 
 // Let the last window be analysed. With explanations on, the first one also
 // pays the ~15s cold model load; the agent drains anything still in flight.
-await sleep(explain ? 45000 : 8000);
+await sleep(investigate ? 75000 : explain ? 45000 : 8000);
 await cleanup();
 process.exit(0);

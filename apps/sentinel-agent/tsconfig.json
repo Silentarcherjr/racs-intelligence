@@ -28,6 +28,9 @@
     },
     {
       "path": "../../packages/qvac-runtime"
+    },
+    {
+      "path": "../../packages/evidence-engine"
     }
   ]
 }
