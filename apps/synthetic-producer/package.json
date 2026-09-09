@@ -6,7 +6,8 @@
   "main": "./dist/index.js",
   "dependencies": {
     "@sentinel/dns-schema": "0.1.0",
-    "kafkajs": "^2.2.4"
+    "kafkajs": "^2.2.4",
+    "@sentinel/egress-guard": "0.1.0"
   },
   "scripts": {
     "build": "tsc --build",

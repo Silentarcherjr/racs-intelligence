@@ -1,3 +1,5 @@
+export { quietKafkaTimeoutWarning } from "./quiet.js";
+
 /**
  * Egress guard — makes zero-egress enforced, not just claimed.
  *

@@ -15,10 +15,13 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { quietKafkaTimeoutWarning } from "@sentinel/egress-guard";
 import { Kafka, logLevel } from "kafkajs";
 import type { DnsEvent } from "@sentinel/dns-schema";
 import { mulberry32 } from "./rng.js";
 import { SCENARIOS, tick, type ScenarioName } from "./scenarios.js";
+
+quietKafkaTimeoutWarning();
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = resolve(here, "../../../datasets/synthetic/sample-events.json");

@@ -8,8 +8,11 @@
  *   npm run receiver -w @sentinel/wazuh-adapter
  */
 
+import { quietKafkaTimeoutWarning } from "@sentinel/egress-guard";
 import { createServer } from "node:http";
 import type { WazuhAlert } from "./alert.js";
+
+quietKafkaTimeoutWarning();
 
 const port = Number(process.env["WAZUH_RECEIVER_PORT"] ?? 8081);
 let count = 0;
