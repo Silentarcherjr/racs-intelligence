@@ -1,3 +1,8 @@
+import { loadEnv } from "./env.js";
+
+// Before any other import reads process.env at module scope.
+loadEnv();
+
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
