@@ -5,6 +5,7 @@
     { "path": "./packages/feature-engine" },
     { "path": "./packages/threat-engine" },
     { "path": "./packages/qoe-engine" },
+    { "path": "./packages/qvac-runtime" },
     { "path": "./packages/wazuh-adapter" },
     { "path": "./packages/clickhouse-adapter" },
     { "path": "./apps/synthetic-producer" },
