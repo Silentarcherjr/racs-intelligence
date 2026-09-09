@@ -114,6 +114,9 @@ export class ClickHouseWriter {
       evidence_descriptions: i.evidence.map((e) => e.description),
       explanation: i.explanation ?? "", recommended_action: i.recommendedAction ?? "",
       analysis_location: "local",
+      screenshot_path: i.visualEvidence?.screenshotPath ?? "",
+      visual_description: i.visualEvidence?.description ?? "",
+      visual_model: i.visualEvidence?.analysedBy ?? "",
     });
   }
 

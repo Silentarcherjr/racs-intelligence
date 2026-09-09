@@ -224,7 +224,7 @@
           <td class="${inc.risk_score >= 70 ? 'risk-high' : inc.risk_score >= 40 ? 'risk-medium' : 'risk-low'}">
             ${inc.risk_score}
           </td>
-          <td>${inc.classification}</td>
+          <td>${inc.classification}${inc.screenshot_path ? ' <span title="Visual evidence collected" style="opacity:.85">📷</span>' : ""}</td>
           <td>${inc.site_id}</td>
           <td>${(inc.confidence * 100).toFixed(0)}%</td>
           <td>${inc.source_hosts.slice(0, 2).join(", ")}${inc.source_hosts.length > 2 ? "..." : ""}</td>
@@ -298,6 +298,24 @@
             <strong>${inc.evidence_types[i]}</strong>: ${desc}
           </div>
         `).join("")}
+
+        ${inc.screenshot_path ? `
+        <h3 style="margin-top: 24px; margin-bottom: 10px; color: #94a3b8;">
+          Visual evidence — captured and analysed on this machine
+        </h3>
+        <div style="background:#0f172a; padding:14px; border-radius:6px;">
+          <img src="/evidence/${inc.screenshot_path.split("/").pop()}"
+               alt="Rendered page captured in the local sandbox"
+               style="width:100%; border-radius:4px; border:1px solid #1e293b; display:block;">
+          <p style="margin:12px 0 0; font-size:13px; color:#cbd5e1;">
+            <strong>${inc.visual_model || "VisionPsy"}:</strong> ${inc.visual_description || "—"}
+          </p>
+          <p style="margin:8px 0 0; font-size:11px; color:#64748b;">
+            Rendered in an isolated browser with no credentials or storage.
+            The screenshot never left this machine.
+          </p>
+        </div>
+        ` : ""}
 
         <h3 style="margin-top: 20px; margin-bottom: 10px; color: #94a3b8;">Recommended Action</h3>
         <p style="background: #0f172a; padding: 12px; border-radius: 4px;">${inc.recommended_action}</p>
