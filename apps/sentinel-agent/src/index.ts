@@ -54,10 +54,29 @@ const explainMinRisk = Number(arg("explain-min-risk", "70"));
  * incident, queueing is also honest about what the machine is actually doing.
  */
 let inferenceChain: Promise<unknown> = Promise.resolve();
+let pendingInferences = 0;
+
 function serialise<T>(fn: () => Promise<T>): Promise<T> {
+  pendingInferences++;
   const next = inferenceChain.then(fn, fn);
-  inferenceChain = next.catch(() => undefined);
+  inferenceChain = next.catch(() => undefined).finally(() => pendingInferences--);
   return next;
+}
+
+/**
+ * Waits for queued analysis to finish before the model is unloaded.
+ *
+ * Without this, a SIGTERM during inference tears the QVAC worker down
+ * underneath in-flight calls: the running one aborts with WORKER_SHUTDOWN and
+ * everything still queued fails with MODEL_NOT_FOUND. Both surface as a
+ * deterministic fallback, which looks like the model simply had nothing useful
+ * to say — the failure is invisible exactly when it matters.
+ */
+async function drainInference(timeoutMs = 120_000): Promise<void> {
+  if (pendingInferences === 0) return;
+  console.log(`  waiting for ${pendingInferences} in-flight analysis job(s)…`);
+  const timeout = new Promise<void>((r) => setTimeout(r, timeoutMs).unref?.());
+  await Promise.race([inferenceChain.catch(() => undefined), timeout]);
 }
 
 const window = new EventWindow(opts.windowSec);
@@ -187,7 +206,10 @@ async function main(): Promise<void> {
     await consumer.disconnect();
     // Flush before exiting, or the final window silently never lands.
     await ch?.close().catch((err: unknown) => console.error("final flush failed:", err));
-    if (explain) await closeRuntime().catch(() => undefined);
+    if (explain) {
+      await drainInference();
+      await closeRuntime().catch(() => undefined);
+    }
     // The proof panel is printed from real counters, not from a constant.
     console.log(sovereignModePanel({
       "Current model": explain ? "qvac/MedPsy-4B-GGUF q4_k_m-imat" : "none loaded",
