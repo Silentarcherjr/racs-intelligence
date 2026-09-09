@@ -110,8 +110,8 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — QVAC spike verified.
-**Hackathon hour:** ~2–4.
+**Last updated:** 2026-09-09 by Claude (Opus 5) — vertical slice streaming end to end.
+**Hackathon hour:** ~6–8.
 
 ### Repository status
 
@@ -136,12 +136,12 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 |---|---|---|---|---|
 | 0 | Repo skeleton + git + toolchain | **DONE ✅** | Claude | npm workspaces + TS project references. `apps/`+`packages/` layout per spec §18, `@sentinel/dns-schema` with all spec §19 types, 66-event fixture. `npm install && npm run build` verified green. **Still missing:** `docker-compose.yml`, `.env.example` — Dev 3's lane. |
 | 1 | **QVAC feasibility spike** | **DONE ✅** | Anthony (Dev 2) | **Verified with real numbers — see "QVAC: verified" below.** 25/25 QVAC models run locally on Apple Silicon. The project's single fatal risk is retired. |
-| 2 | Synthetic DNS producer | NOT STARTED | — | spec §13 — normal, DGA, typosquat, tunneling, beaconing, QoE degradation |
-| 3 | Kafka (or Redpanda) + Vector | NOT STARTED | — | must be a real stream |
-| 4 | Sentinel consumer + feature engine | NOT STARTED | — | spec §7 MVP-1/2 |
-| 5 | Threat engine (4 detectors) | NOT STARTED | — | deterministic, weighted, explainable |
-| 6 | QVAC local analyst (explanations) | NOT STARTED | — | spec §20 — constrained prompt, JSON schema, validated |
-| 7 | Wazuh adapter | NOT STARTED | — | local compatible endpoint first, real Wazuh second |
+| 2 | Synthetic DNS producer | **DONE ✅** | Anthony (Dev 1) | `apps/synthetic-producer`. `--source fixture` replays the committed 66 events byte-identically; `--source generate` streams all six spec §13 scenarios from a seed. `--dry-run` works with no broker. |
+| 3 | Kafka + Vector | **PARTIAL** | Anthony (Dev 1) | **Kafka verified** against a real Apache Kafka 4.3.1 broker (native, KRaft). `docker-compose.yml` has the Kafka service but is **UNVERIFIED** — no Docker on Dev 1's machine. **Vector is not in the path**: the producer writes to Kafka directly. |
+| 4 | Sentinel consumer + feature engine | **DONE ✅** | Anthony (Dev 1) | `apps/sentinel-agent` consumes the topic into a bounded sliding window and re-analyses on a timer. `packages/feature-engine` has the lexical and behavioral features. |
+| 5 | Threat engine (4 detectors) | **DONE ✅** | Anthony (Dev 1) | DGA, typosquatting, tunneling, beaconing. 6 incidents from the fixture, no false positives on the 24 benign events, 5/5 regression tests. All scoring is a weighted sum of evidence — no model touches a risk number. |
+| 6 | QVAC local analyst (explanations) | **CLAIMED — awaiting push** | Dev 2 | Reported complete on `feature/qvac` (`explainIncident()`, MedPsy-4B q4_k_m-imat, `enable_thinking:false`, spec §20 prompt, fallback when `isAnalystResponse` fails). **The branch is not on the remote yet — unverified by anyone else.** |
+| 7 | Wazuh adapter | IN PROGRESS | Claude (crossing into Dev 3's lane — see §8) | local compatible endpoint first, real Wazuh second |
 | 8 | QoE engine + site baselines | NOT STARTED | — | spec §7 MVP-5, §14 |
 | 9 | ClickHouse writer | NOT STARTED | — | |
 | 10 | Grafana dashboard | NOT STARTED | — | QoE per site/zone |
@@ -230,9 +230,9 @@ Canonical TypeScript types (`DnsEvent`, `ThreatEvidence`, `Incident`, `QoeWindow
 | Package manager / monorepo tool | **npm workspaces** + TypeScript project references. No pnpm, no turbo — nobody should be debugging tooling at hour 40 | **LOCKED** |
 | Shared types package | `@sentinel/dns-schema` (`packages/dns-schema/`). **Dependency-free on purpose.** Every cross-module shape lives here; do not redefine `DnsEvent` etc. locally | **LOCKED** |
 | Test fixture | `datasets/synthetic/sample-events.json` — 66 events, seed `20260909`, byte-identical for everyone. Build against this until Kafka exists | **LOCKED** |
-| Kafka broker address | — | TBD |
-| Kafka topic — raw DNS events | — | TBD |
-| Kafka topic — incidents (if used) | — | TBD |
+| Kafka broker address | `localhost:9092` (env `KAFKA_BROKER`). **Apache Kafka, not Redpanda** — 4.x is KRaft-only, no ZooKeeper | **LOCKED** |
+| Kafka topic — raw DNS events | `dns.events.raw` (env `KAFKA_TOPIC_DNS`), 3 partitions, **keyed by `clientIp`** so one host's queries keep their order — beaconing detection depends on it | **LOCKED** |
+| Kafka topic — incidents | not used yet; the agent analyses in-process | TBD |
 | ClickHouse DB / table for QoE | — | TBD |
 | Wazuh endpoint + alert JSON shape | — | TBD |
 | QVAC text analyst model | `qvac/MedPsy-4B-GGUF`, quantization `q4_k_m-imat` (file `medpsy-4b-q4_k_m-imat.gguf`) | **LOCKED** — verified 72.6 tok/s |
@@ -308,7 +308,16 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
 - [ ] Verify MIT is acceptable if Track 02 is claimed (spec §34 says verify, don't assume).
 - [x] ~~QVAC SDK validated~~ — **done**, 25/25 models pass on Dev 2's M1 Max. Models
       and quantizations are locked in §6.
-- [ ] Kafka vs Redpanda — pick one and freeze it in §6.
+- [x] ~~Kafka vs Redpanda~~ — **DECIDED: Apache Kafka.** Verified natively at 4.3.1.
+- [ ] **`docker-compose.yml` is UNVERIFIED.** Docker is not installed on Dev 1's machine;
+      the Kafka path was verified against a native broker instead. Whoever has Docker
+      first: run it, fix what breaks, remove the notice at the top of the file.
+- [ ] **Vector is not in the pipeline.** The producer writes to Kafka directly. Ovnicom's
+      stated pipeline is BIND9 → dnstap → Vector → Kafka. Decide whether to add Vector or
+      to state plainly in the README that we start at the Kafka boundary.
+- [ ] ⚠️ **Cross-lane: Claude is building `packages/wazuh-adapter/`, which §5 assigns to
+      Dev 3.** Flagged rather than done silently. **Tell Dev 3 before they start it**, or
+      the work is duplicated and conflicts.
 - [ ] Wazuh: full deployment vs local compatible endpoint first (spec §16 says build the compatible endpoint first, integrate real Wazuh after).
 - [ ] Confirm whether Track 02 will be claimed. **Now realistic**: VisionPsy runs via
       `@qvac/sdk`, exact model + quantization are known, and `./qvac bench` covers the
@@ -353,6 +362,32 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — streaming slice (PRs #1, #2)
+Did:        Built and merged the detection half of the vertical slice.
+            `packages/feature-engine` (lexical + behavioral), `packages/threat-engine`
+            (DGA, typosquat, tunneling, beaconing + scoring), `apps/synthetic-producer`
+            and `apps/sentinel-agent`. Verified end to end against a **real Apache Kafka
+            4.3.1 broker**: 66 events produced and consumed, 6 incidents, output identical
+            to the direct fixture run. 5/5 regression tests.
+            **Two bugs found by running it, not by reading it:**
+            (1) typosquat evidence quoted an irrelevant edit distance as the reason a
+            containment match fired — evidence that misleads costs more than no evidence;
+            (2) detectors took `siteId` from the first event of a group, so Kafka's
+            partition ordering gave the same attack a different incident id each run,
+            which would have broken deduplication silently. Both fixed, both now covered
+            by tests.
+Did not:    No Wazuh alert, no QoE, no ClickHouse, no Grafana. **Vector is not in the
+            path.** `docker-compose.yml` is written but UNVERIFIED — no Docker here.
+            Did not verify Dev 2's QVAC work: `feature/qvac` was never pushed.
+Broken:     Nothing known. Kafka runs natively via Homebrew on this machine
+            (`brew services stop kafka` to stop it), which is **not** how the rest of the
+            team will run it — they need the compose file to actually work.
+Contracts:  **LOCKED in §6:** Apache Kafka at `localhost:9092`, topic `dns.events.raw`,
+            3 partitions, messages keyed by `clientIp`.
+Next:       Wazuh adapter — the last piece of the Track 04 core. Then wire Dev 2's
+            `explainIncident()` into `apps/sentinel-agent` at the marked integration
+            point, once that branch is pushed.
 
 ### 2026-09-09 — Claude (Opus 5) — skeleton + shared contracts
 Did:        Created the monorepo skeleton: npm workspaces + TS project references,
