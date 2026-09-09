@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **12/13 Must Haves; stack reproducible in Docker. Only the video is left.**
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **VisionPsy investigation works; needs wiring into the agent. Then the video.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -155,8 +155,8 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 9 | ClickHouse writer | **DONE ✅** | Claude (Dev 3's lane) | |
 | 10 | Grafana dashboard | **DONE ✅** | Claude (Dev 3's lane) | QoE per site/zone |
 | 11 | SOC↔NOC correlation | **DONE ✅** | Claude (Dev 3's lane) | spec §11 |
-| 12 | Active investigator + sandbox | NOT STARTED | — | spec §8, §9 |
-| 13 | VisionPsy path | NOT STARTED | Anthony (Dev 2) | **Runtime already proven** (238 tok/s, TTFT ~0.8 s). Track 02 is now realistically claimable. Still to build: the sandbox → screenshot → VisionPsy → evidence-fusion flow. |
+| 12 | Active investigator + sandbox | **DONE ✅ (not wired)** | Claude | `packages/evidence-engine`. Deterministic action selection (spec §8.2), throwaway Chromium context, screenshot only. **Works in isolation; the agent does not call it yet.** |
+| 13 | VisionPsy path | **DONE ✅ (not wired)** | Claude | Verified: risk 64 → 89 on a rendered decoy page. ~2s render + ~5.5s for four vision calls. |
 | 14 | Analyst UI | **DONE ✅** | Dev 2 (`frictionspp-svg`) | `apps/analyst-ui` on `127.0.0.1:3001`. Reads live ClickHouse data. "Ask Sentinel" (spec §12) is still not built. |
 | 15 | README + docs | **DONE ✅** | Claude | All 21 sections of spec §33 filled from measured values. `docs/ZERO_EGRESS.md` + `docs/ONBOARDING.md`. Missing: ARCHITECTURE, THREAT_MODEL, TRACK_MAPPING, DEMO. |
 | 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
@@ -315,6 +315,10 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
 - [ ] **`likely_scenario` can over-claim.** The committed demo output says "Automated
       botnet activity" for a typosquat, which the evidence does not support (spec §20
       rule 1). Real incidents came back accurate; watch it, don't block on it.
+- [ ] 🔴 **Wire the investigation into `apps/sentinel-agent`.** Everything works and is
+      merged, but the agent never calls `decideNextAction`. **This is the single highest
+      value task left** — without it the demo does not tell the story the pitch promises.
+      Exactly what to do is in the handoff entry below.
 - [ ] 🔴 **Record the 5-minute video.** The last remaining Must Have (spec §29, §31).
 - [x] ~~Nobody has run `docker-compose.yml`~~ — **verified end to end (PR #10)** on
       colima 0.10.3 / Docker 29.5.2. The jury can reproduce the project.
@@ -377,6 +381,57 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — VisionPsy investigation (PR #15)
+Did:        Built the differentiator: `packages/evidence-engine` (deterministic action
+            selection per spec §8.2, isolated Chromium sandbox, VisionPsy via `@qvac/sdk`,
+            evidence fusion) and `apps/phishing-demo` (a **fictional** bank's credential
+            page on loopback under `.example`; no real institution is imitated anywhere).
+            **Verified: risk 64 → 89** on a rendered decoy, ~2s render + ~5.5s for four
+            vision calls. 21/21 tests.
+            **Two bugs, both about not inventing evidence:** a keyword fallback matched
+            "financial" inside "does NOT appear to be a financial institution" and
+            inverted the model's conclusion — there is now no fallback at all, findings
+            are three-valued and unknown contributes nothing; and VisionPsy-Nano (460M)
+            would not hold a composite answer format, so it is now one yes/no question
+            per call with only the leading word counted.
+Did not:    ⚠️ **NOT WIRED INTO THE AGENT.** The pieces work in isolation. `sentinel-agent`
+            still never calls `decideNextAction`. No video.
+Broken:     Nothing known.
+Contracts:  `QVAC_VISION_MODELS_DIR` (falls back to `QVAC_MODELS_DIR`) must hold
+            `visionpsy-nano-460m-flash-q4_k_m-imat.gguf` **and**
+            `mmproj-visionpsy-nano-460m-flash-q8.gguf`. Decoy site on `127.0.0.1:8099`.
+            Sandbox resolves invented domains with
+            `hostResolverRules: "MAP *.example 127.0.0.1:8099"`.
+            `Incident.visualEvidence` added to `@sentinel/dns-schema`.
+
+            ── HOW TO WIRE IT (next task, ~45 min) ──────────────────────────────────
+            In `apps/sentinel-agent/src/index.ts`, inside `report(inc)`, after the QVAC
+            explanation and **before** the Wazuh send:
+
+              import { decideNextAction, renderDomain, analyzeScreenshot,
+                       fuseVisionIntoIncident } from "@sentinel/evidence-engine";
+
+              const decision = decideNextAction(inc);
+              if (investigate && decision.action === "LOCAL_RENDER" && inc.domains[0]) {
+                say(`  investigating: ${decision.rationale}`);
+                const render = await serialise(() => renderDomain(inc.domains[0]!, {
+                  hostResolverRules: process.env["SANDBOX_RESOLVER_RULES"],
+                }));
+                const findings = await serialise(() => analyzeScreenshot(render.screenshotPath));
+                Object.assign(inc, fuseVisionIntoIncident(inc, render, findings));
+                say(`  risk ${before} → ${inc.riskScore} after visual evidence`);
+              }
+
+            Notes that matter:
+            - Reuse `serialise()`. Two models must not run concurrently on one GPU.
+            - Add `--investigate` as an opt-in flag, like `--explain`.
+            - Call `closeSandbox()` and `closeVision()` in `shutdown()`, and drain first.
+            - `scripts/demo.mjs` must start `apps/phishing-demo` and pass
+              `SANDBOX_RESOLVER_RULES=MAP *.example 127.0.0.1:8099`.
+            - The demo scenario to use is `typosquat` (the generator now emits
+              `banco-aur0ra-login.example`), not `full` — the frozen fixture has no
+              matching domain and the decoy is a bank.
 
 ### 2026-09-09 — Claude (Opus 5) — docker-compose verified (PR #10)
 Did:        Installed colima (no GUI, no admin needed) and ran the compose stack for the
