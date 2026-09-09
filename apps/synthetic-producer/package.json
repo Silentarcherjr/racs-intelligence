@@ -1,0 +1,16 @@
+{
+  "name": "@sentinel/synthetic-producer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "dependencies": {
+    "@sentinel/dns-schema": "0.1.0",
+    "kafkajs": "^2.2.4"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node ./dist/index.js",
+    "demo": "node ./dist/index.js --source fixture --dry-run"
+  }
+}

@@ -2,6 +2,10 @@
   "files": [],
   "references": [
     { "path": "./packages/dns-schema" },
-    { "path": "./packages/qvac-runtime" }
+    { "path": "./packages/feature-engine" },
+    { "path": "./packages/threat-engine" },
+    { "path": "./packages/qvac-runtime" },
+    { "path": "./apps/synthetic-producer" },
+    { "path": "./apps/sentinel-agent" }
   ]
 }

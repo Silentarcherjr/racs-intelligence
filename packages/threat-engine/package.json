@@ -1,0 +1,23 @@
+{
+  "name": "@sentinel/threat-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@sentinel/dns-schema": "0.1.0",
+    "@sentinel/feature-engine": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "demo": "node ./dist/cli.js",
+    "test": "node --test dist/"
+  }
+}
