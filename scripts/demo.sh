@@ -14,6 +14,25 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 
+# Load .env if present, so credentials and endpoints come from one place.
+# Docker Compose reads .env by itself; the Node apps do not, and a stack that
+# works for compose but not for the CLI is a confusing way to lose an hour.
+#
+# Parsed line by line rather than sourced: `source` chokes on an unquoted value
+# containing spaces (a model path like "/Users/me/PRUEBA DE MODELOS/..." tries
+# to execute "DE" as a command), while Compose accepts it happily. Same file,
+# two parsers, and the failure looks like the variable was simply never set.
+if [ -f "$ROOT/.env" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    key="${line%%=*}"; val="${line#*=}"
+    case "$key" in *[!A-Za-z0-9_]*) continue ;; esac
+    val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
+    export "$key=$val"
+  done < "$ROOT/.env"
+fi
+
+
 SCENARIO="${1:-full}"
 GROUP="demo-$(date +%s)"
 # A fresh topic per run is what actually makes the demo deterministic. The
@@ -52,7 +71,10 @@ if [ -n "${QVAC_MODELS_DIR:-}" ] && [ -f "${QVAC_MODELS_DIR}/medpsy-4b-q4_k_m-im
   EXPLAIN="--explain"
 fi
 CLICKHOUSE=""
-if curl -s --max-time 2 "${CLICKHOUSE_URL:-http://127.0.0.1:8123}/?query=SELECT+1" >/dev/null 2>&1; then
+CH_AUTH=()
+[ -n "${CLICKHOUSE_USER:-}" ] && CH_AUTH=(-H "X-ClickHouse-User: $CLICKHOUSE_USER"
+                                          -H "X-ClickHouse-Key: ${CLICKHOUSE_PASSWORD:-}")
+if curl -s --max-time 3 "${CH_AUTH[@]}" "${CLICKHOUSE_URL:-http://127.0.0.1:8123}/?query=SELECT+1" | grep -q 1; then
   CLICKHOUSE="--clickhouse"
 fi
 
@@ -63,8 +85,12 @@ echo ""
 echo "  scenario     $SCENARIO"
 echo "  broker       $BROKER"
 echo "  topic        $TOPIC"
-echo "  storage      ${CLICKHOUSE:+ClickHouse}${CLICKHOUSE:-none (QoE not persisted)}"
-echo "  local model  ${EXPLAIN:+MedPsy-4B q4_k_m-imat, on-device}${EXPLAIN:-not loaded (set QVAC_MODELS_DIR)}"
+# Same expansion trap as the settle timer: ${VAR:-default} yields the VALUE
+# when the variable is set, so the :+ and :- forms cannot be chained.
+if [ -n "$CLICKHOUSE" ]; then STORAGE="ClickHouse"; else STORAGE="none (QoE not persisted)"; fi
+if [ -n "$EXPLAIN" ]; then MODEL="MedPsy-4B q4_k_m-imat, on-device"; else MODEL="not loaded (set QVAC_MODELS_DIR)"; fi
+echo "  storage      $STORAGE"
+echo "  local model  $MODEL"
 echo ""
 echo "  Nothing below leaves this machine. Verify with ./scripts/verify-zero-egress.sh"
 echo "  ─────────────────────────────────────────────────────────────────────────"

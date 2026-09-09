@@ -15,6 +15,25 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Load .env if present, so credentials and endpoints come from one place.
+# Docker Compose reads .env by itself; the Node apps do not, and a stack that
+# works for compose but not for the CLI is a confusing way to lose an hour.
+#
+# Parsed line by line rather than sourced: `source` chokes on an unquoted value
+# containing spaces (a model path like "/Users/me/PRUEBA DE MODELOS/..." tries
+# to execute "DE" as a command), while Compose accepts it happily. Same file,
+# two parsers, and the failure looks like the variable was simply never set.
+if [ -f "$ROOT/.env" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    key="${line%%=*}"; val="${line#*=}"
+    case "$key" in *[!A-Za-z0-9_]*) continue ;; esac
+    val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
+    export "$key=$val"
+  done < "$ROOT/.env"
+fi
+
+
 BROKER="${KAFKA_BROKER:-localhost:9092}"
 GROUP="zero-egress-verify-$$"
 LOG="$(mktemp -t sentinel-egress)"

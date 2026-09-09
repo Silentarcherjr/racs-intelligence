@@ -6,6 +6,25 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 
+# Load .env if present, so credentials and endpoints come from one place.
+# Docker Compose reads .env by itself; the Node apps do not, and a stack that
+# works for compose but not for the CLI is a confusing way to lose an hour.
+#
+# Parsed line by line rather than sourced: `source` chokes on an unquoted value
+# containing spaces (a model path like "/Users/me/PRUEBA DE MODELOS/..." tries
+# to execute "DE" as a command), while Compose accepts it happily. Same file,
+# two parsers, and the failure looks like the variable was simply never set.
+if [ -f "$ROOT/.env" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    key="${line%%=*}"; val="${line#*=}"
+    case "$key" in *[!A-Za-z0-9_]*) continue ;; esac
+    val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
+    export "$key=$val"
+  done < "$ROOT/.env"
+fi
+
+
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 bad()  { printf '  \033[31m✗\033[0m %s\n' "$*"; }
@@ -40,7 +59,10 @@ else
 fi
 
 CH="${CLICKHOUSE_URL:-http://127.0.0.1:8123}"
-if curl -s --max-time 2 "$CH/ping" >/dev/null 2>&1 || curl -s --max-time 2 "$CH/?query=SELECT+1" >/dev/null 2>&1; then
+CH_AUTH=()
+[ -n "${CLICKHOUSE_USER:-}" ] && CH_AUTH=(-H "X-ClickHouse-User: $CLICKHOUSE_USER"
+                                          -H "X-ClickHouse-Key: ${CLICKHOUSE_PASSWORD:-}")
+if curl -s --max-time 3 "${CH_AUTH[@]}" "$CH/?query=SELECT+1" | grep -q 1; then
   ok "ClickHouse at $CH"
   if ./infra/clickhouse/apply-schema.sh "$CH" >/dev/null 2>&1; then
     ok "schema applied"

@@ -128,9 +128,14 @@ git clone https://github.com/Silentarcherjr/sovereign-sentinel.git
 cd sovereign-sentinel
 npm install && npm run build
 
+cp .env.example .env          # endpoints and ClickHouse credentials
 docker compose up -d          # kafka, clickhouse, grafana
 ./scripts/bootstrap.sh        # verifies prerequisites and applies the schema
 ```
+
+Verified on colima 0.10.3 / Docker 29.5.2 on Apple Silicon. On macOS without
+Docker Desktop, `brew install colima docker docker-compose && colima start`
+works and needs no GUI.
 
 Model weights are **never downloaded at run time**. Fetch them once, ahead of time, and
 point `QVAC_MODELS_DIR` at the directory containing `medpsy-4b-q4_k_m-imat.gguf`. Without

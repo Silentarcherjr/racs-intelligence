@@ -20,7 +20,10 @@ for s in (s.strip() for s in sql.split(";")):
 PY
   [ -z "$stmt" ] && continue
   printf '  %.60s… ' "$stmt"
-  if curl -sS --fail-with-body --data-binary "$stmt" "$URL/" >/dev/null; then
+  AUTH=()
+  [ -n "${CLICKHOUSE_USER:-}" ] && AUTH=(-H "X-ClickHouse-User: $CLICKHOUSE_USER"
+                                        -H "X-ClickHouse-Key: ${CLICKHOUSE_PASSWORD:-}")
+  if curl -sS --fail-with-body "${AUTH[@]}" --data-binary "$stmt" "$URL/" >/dev/null; then
     echo "ok"
   else
     echo "FAILED"; exit 1
