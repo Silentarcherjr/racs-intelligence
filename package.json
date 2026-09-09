@@ -5,12 +5,20 @@
   "description": "Zero-egress local AI security analyst for DNS telemetry",
   "license": "MIT",
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
-  "engines": { "node": ">=22.17" },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.17"
+  },
   "scripts": {
     "build": "tsc --build",
     "typecheck": "tsc --build --force",
-    "clean": "tsc --build --clean"
+    "clean": "tsc --build --clean",
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "demo": "node scripts/demo.mjs",
+    "test": "node --test packages/*/dist/*.test.js"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
