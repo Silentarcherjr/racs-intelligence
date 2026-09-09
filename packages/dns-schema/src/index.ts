@@ -80,6 +80,17 @@ export type Incident = {
   };
   explanation?: string;
   recommendedAction?: string;
+  /**
+   * Set only when the active investigator rendered the domain locally.
+   * The screenshot path is local and stays local — it is never uploaded, and
+   * the alert carries the path so an analyst can open it on the same machine.
+   */
+  visualEvidence?: {
+    screenshotPath: string;
+    /** The vision model's own description, verbatim. */
+    description: string;
+    analysedBy: string;
+  };
 };
 
 // ─── DNS quality of experience ──────────────────────────────────────────────

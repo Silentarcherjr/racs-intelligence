@@ -47,6 +47,8 @@ export type DetectorConfig = {
 export const DEFAULT_BRANDS = [
   "microsoft", "apple", "google", "github", "cloudflare",
   "banesco", "bancogeneral", "caja", "office365", "outlook",
+  // Fictional, used by the demo decoy site.
+  "aurora",
 ];
 
 export const DEFAULT_CONFIG: DetectorConfig = {

@@ -81,6 +81,10 @@ export function dga({ rng, at }: Ctx, count = 1): DnsEvent[] {
 }
 
 const SQUATS = [
+  // Matches the fictional bank served by apps/phishing-demo, so the visual
+  // investigation tells one coherent story: a bank-imitating domain whose page
+  // really is a bank-imitating credential form.
+  "banco-aur0ra-login.example",
   "micr0soft-secure-login.example",
   "banes-co-panama.example",
   "app1e-id-verify.example",

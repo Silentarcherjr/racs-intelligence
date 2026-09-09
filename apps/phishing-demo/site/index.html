@@ -1,0 +1,81 @@
+<!--
+  SYNTHETIC TEST ARTIFACT — Sovereign Sentinel.
+
+  A credential-phishing page mock-up used to exercise the visual investigation
+  path. It exists so the detector has something to detect.
+
+  Deliberate constraints:
+    - "Banco Aurora del Istmo" is a FICTIONAL institution. No real bank's name,
+      branding or domain is imitated anywhere in this repository.
+    - Served on 127.0.0.1 only, under a .example domain, which by RFC 2606 can
+      never resolve on the public internet.
+    - The form has no action and no handler. Nothing is submitted, stored or
+      transmitted, and there is no backend to receive it.
+    - A footer marks the page as synthetic.
+
+  It carries the visual traits a phishing page has — a bank-like identity, a
+  credential form and urgency language — because those are exactly what
+  VisionPsy is being asked to recognise.
+-->
+<meta charset="utf-8">
+<title>Banco Aurora del Istmo — Acceso a Banca en Línea</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: #eef2f6; color: #16202b; }
+  header { background: #0b3d6b; color: #fff; padding: 14px 28px;
+           display: flex; align-items: center; gap: 14px; }
+  .mark { width: 34px; height: 34px; border-radius: 6px; background: #f5b301;
+          display: grid; place-items: center; color: #0b3d6b;
+          font-weight: 800; font-size: 19px; }
+  .brand { font-size: 19px; font-weight: 700; letter-spacing: .2px; }
+  .brand small { display: block; font-size: 11px; font-weight: 400; opacity: .8; }
+  .alert { background: #fdecea; border-left: 4px solid #c0392b; color: #8b2c22;
+           padding: 12px 20px; font-size: 14px; font-weight: 600; }
+  main { max-width: 430px; margin: 44px auto; background: #fff; border-radius: 10px;
+         padding: 34px; box-shadow: 0 2px 18px rgba(11,61,107,.13); }
+  h1 { font-size: 21px; margin: 0 0 6px; }
+  p.sub { margin: 0 0 24px; color: #5b6b7c; font-size: 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 6px; }
+  input { width: 100%; padding: 11px 13px; border: 1px solid #c8d3de;
+          border-radius: 6px; font-size: 15px; }
+  button { width: 100%; margin-top: 24px; padding: 13px; border: 0; border-radius: 6px;
+           background: #0b3d6b; color: #fff; font-size: 15px; font-weight: 700; }
+  .links { margin-top: 18px; font-size: 13px; text-align: center; color: #0b3d6b; }
+  footer { text-align: center; font-size: 11px; color: #7d8b99; padding: 22px; }
+</style>
+
+<header>
+  <div class="mark">A</div>
+  <div class="brand">Banco Aurora del Istmo<small>Banca en Línea Personal</small></div>
+</header>
+
+<div class="alert">
+  Aviso urgente: su cuenta será suspendida en 24 horas. Verifique sus credenciales ahora.
+</div>
+
+<main>
+  <h1>Iniciar sesión</h1>
+  <p class="sub">Ingrese sus datos para restablecer el acceso a su cuenta.</p>
+
+  <!-- No action, no handler, no backend. Nothing here submits anywhere. -->
+  <form onsubmit="return false;">
+    <label for="u">Usuario o número de cliente</label>
+    <input id="u" name="u" type="text" autocomplete="off" placeholder="Ingrese su usuario">
+
+    <label for="p">Clave de acceso</label>
+    <input id="p" name="p" type="password" autocomplete="off" placeholder="••••••••">
+
+    <label for="t">Clave dinámica (token)</label>
+    <input id="t" name="t" type="text" autocomplete="off" placeholder="6 dígitos">
+
+    <button type="submit">Verificar mi cuenta</button>
+  </form>
+
+  <div class="links">¿Olvidó su clave? · Registrarse · Ayuda</div>
+</main>
+
+<footer>
+  SYNTHETIC TEST ARTIFACT — fictional institution, generated for Sovereign Sentinel
+  detection testing. Not affiliated with any real bank.
+</footer>
