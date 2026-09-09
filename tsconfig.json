@@ -1,14 +1,35 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/dns-schema" },
-    { "path": "./packages/feature-engine" },
-    { "path": "./packages/threat-engine" },
-    { "path": "./packages/qoe-engine" },
-    { "path": "./packages/qvac-runtime" },
-    { "path": "./packages/wazuh-adapter" },
-    { "path": "./packages/clickhouse-adapter" },
-    { "path": "./apps/synthetic-producer" },
-    { "path": "./apps/sentinel-agent" }
+    {
+      "path": "./packages/dns-schema"
+    },
+    {
+      "path": "./packages/egress-guard"
+    },
+    {
+      "path": "./packages/feature-engine"
+    },
+    {
+      "path": "./packages/threat-engine"
+    },
+    {
+      "path": "./packages/qoe-engine"
+    },
+    {
+      "path": "./packages/qvac-runtime"
+    },
+    {
+      "path": "./packages/wazuh-adapter"
+    },
+    {
+      "path": "./packages/clickhouse-adapter"
+    },
+    {
+      "path": "./apps/synthetic-producer"
+    },
+    {
+      "path": "./apps/sentinel-agent"
+    }
   ]
 }
