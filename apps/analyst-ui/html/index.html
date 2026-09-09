@@ -385,7 +385,10 @@
           Visual evidence — captured and analysed on this machine
         </h3>
         <div style="background:#0f172a; padding:14px; border-radius:6px;">
-          <img src="/evidence/${inc.screenshot_path.split("/").pop()}"
+          <!-- Split on BOTH separators: path.join() produces backslashes on
+               Windows, so splitting on "/" alone returns the whole path and
+               the image 404s. Works on macOS, fails on a teammate's laptop. -->
+          <img src="/evidence/${inc.screenshot_path.split(/[\\/]/).pop()}"
                alt="Rendered page captured in the local sandbox"
                style="width:100%; border-radius:4px; border:1px solid #1e293b; display:block;">
           <p style="margin:12px 0 0; font-size:13px; color:#cbd5e1;">

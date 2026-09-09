@@ -5,11 +5,19 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "dependencies": {
     "@sentinel/dns-schema": "0.1.0",
     "@qvac/sdk": "*",
-    "playwright": "*"
+    "playwright": "^1.63.0"
   },
-  "scripts": { "build": "tsc --build", "test": "node --test dist/" }
+  "scripts": {
+    "build": "tsc --build",
+    "test": "node --test dist/"
+  }
 }
