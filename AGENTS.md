@@ -204,8 +204,8 @@ inherits its owner's lane. Fill in the names below.
 
 | Dev | Owns | Files/dirs |
 |---|---|---|
-| **Dev 1** — _name TBD_ | Streaming + threat engine | `apps/synthetic-producer/`, `packages/dns-schema/`, `packages/feature-engine/`, `packages/threat-engine/` |
-| **Dev 2** — **Anthony** (`Silentarcherjr`, `feature/qvac`) | QVAC + evidence + vision | `packages/qvac-runtime/`, `packages/evidence-engine/`, vision path, `benchmarks/` |
+| **Dev 1** — **Anthony** (`Silentarcherjr`, `feature/stream-engine`) | Streaming + threat engine | `apps/synthetic-producer/`, `packages/dns-schema/`, `packages/feature-engine/`, `packages/threat-engine/` |
+| **Dev 2** — _name TBD_ (`feature/qvac`) | QVAC + evidence + vision | `packages/qvac-runtime/`, `packages/evidence-engine/`, vision path, `benchmarks/` |
 | **Dev 3** — _name TBD_ | Data + QoE + integrations | `packages/qoe-engine/`, `packages/clickhouse-adapter/`, `packages/wazuh-adapter/`, `infra/` |
 | **Dev 4** — _name TBD_ | Frontend + integration + demo | `apps/analyst-ui/`, `scripts/`, `README.md`, `docs/`, video/submission |
 
@@ -231,7 +231,9 @@ Canonical TypeScript types (`DnsEvent`, `ThreatEvidence`, `Incident`, `QoeWindow
 | QVAC text analyst model | `qvac/MedPsy-4B-GGUF`, quantization `q4_k_m-imat` (file `medpsy-4b-q4_k_m-imat.gguf`) | **LOCKED** — verified 72.6 tok/s |
 | QVAC vision model | `qvac/VisionPsy-Nano-460M-Flash-GGUFs`, quantization `q4_k_m-imat`, mmproj `q8` | **LOCKED** — verified 238 tok/s |
 | Vision engine | QVAC SDK (`runners/qvac_node/vlm.mjs`). **Never Homebrew `llama.cpp`** — see §4 finding 2 | **LOCKED** |
-| Text inference engine | `llama.cpp` + Metal (GGUF). Integration path SDK-vs-`./qvac serve` still open — see §8 | proposed |
+| **Inference integration path** | **`@qvac/sdk` only.** `./qvac serve` (OpenAI-compatible, `localhost:8080`) is permitted for local development ONLY — it must not appear in the demo, the submission, or any committed code path | **LOCKED** |
+| Text inference engine | `llama.cpp` + Metal (GGUF), driven through the SDK | **LOCKED** |
+| **Models every inference machine must have on disk** | `qvac/MedPsy-4B-GGUF` (2.5 GB) **+** `qvac/VisionPsy-Nano-460M-Flash-GGUFs` (393 MB) = **≈2.9 GB.** Download both up front — §2 forbids pulling weights at demo time | **DECIDED** |
 | Model weights location | Env var `QVAC_MODELS_DIR` (not yet implemented). Weights are **never** committed — `.gitignore` blocks `models/` and `*.gguf` | TBD |
 | Hardware of record | Apple M1 Max, 32 GB (README §33 item 8) | recorded |
 | QVAC analyst prompt + response schema | spec §20 | to be implemented in `packages/qvac-runtime/` |
@@ -283,16 +285,14 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
 
 - [ ] **Collaborators invited, waiting on acceptance** — `frictionspp-svg`, `LowCrime`,
       `Ralu13` at <https://github.com/Silentarcherjr/sovereign-sentinel/invitations>.
-- [ ] **Integration path for QVAC: SDK vs `./qvac serve`.** `./qvac serve` exposes an
-      OpenAI-compatible API on `localhost:8080` — fastest to integrate and still
-      zero-egress because it is loopback. **But Track 02 requires `@qvac/sdk` as the
-      primary inference path**, and an "OpenAI-compatible" endpoint in a project whose
-      pitch is "no OpenAI" invites the wrong question from the jury. Recommendation:
-      integrate through the SDK; use `serve` only for local development.
-- [ ] **Only Dev 2's machine can run inference today.** The 71 GB catalog lives outside
-      the repo. Everyone else needs just the two models Sentinel uses — **≈2.9 GB total**
-      (MedPsy-4B-GGUF 2.5 GB + VisionPsy-Flash-GGUFs 393 MB), not 71 GB. Decide whether
-      the other devs pull them or whether QVAC work stays on Dev 2's machine.
+- [x] ~~SDK vs `./qvac serve`~~ — **DECIDED 2026-09-09: `@qvac/sdk` only.** `serve` is a
+      dev convenience, never a shipped path. Locked in §6.
+- [x] ~~Do we download VisionPsy?~~ — **DECIDED 2026-09-09: yes, download both models
+      (≈2.9 GB) on every machine that runs inference.** Downloading is not the same as
+      claiming Track 02: the weights must be on disk regardless, because §2 forbids
+      pulling models at demo time. Order matters — **MedPsy first** (it is on the vertical
+      slice, board item 6), VisionPsy second (item 13). The Track 02 *claim* is still a
+      separate, later decision.
 - [ ] **Port the QVAC runner into the repo** as `packages/qvac-runtime/`. Today the
       working code lives in the external test bench; the repo must be reproducible
       (spec §38) without that folder.
