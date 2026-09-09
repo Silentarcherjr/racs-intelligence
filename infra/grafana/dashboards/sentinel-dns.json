@@ -1,0 +1,464 @@
+{
+  "uid": "sentinel-dns",
+  "title": "Sovereign Sentinel \u2014 DNS Security & QoE",
+  "description": "Local-first DNS security and quality. All analysis runs on-premise; no telemetry leaves the machine.",
+  "tags": [
+    "sentinel",
+    "dns",
+    "security",
+    "qoe"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "editable": true,
+  "time": {
+    "from": "2026-09-09T11:00:00.000Z",
+    "to": "2026-09-09T13:00:00.000Z"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "DNS QoE by site",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT site_id, argMax(score, window_end) AS qoe FROM sentinel.dns_qoe_windows FINAL GROUP BY site_id ORDER BY site_id",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "description": "0-100, higher is better. Thresholds match the grades in qoe-engine.",
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^qoe$/",
+          "values": true
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 40
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "green",
+                "value": 75
+              },
+              {
+                "color": "dark-green",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "SOC / NOC attribution",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT site_id AS Site, argMax(verdict, window_end) AS Verdict, argMax(qoe_score, window_end) AS QoE, round(argMax(correlation_score, window_end), 2) AS Correlation FROM sentinel.dns_correlations FINAL GROUP BY site_id ORDER BY site_id",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "description": "Is degradation operational or security-driven? Correlation only \u2014 never a causal claim (spec \u00a711)."
+    },
+    {
+      "id": 3,
+      "title": "Open incidents",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT count() AS incidents FROM sentinel.dns_incidents FINAL",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Highest risk",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT max(risk_score) AS max_risk FROM sentinel.dns_incidents FINAL",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "QoE over time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT window_end AS time, site_id, score FROM sentinel.dns_qoe_windows FINAL ORDER BY window_end",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 40
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "green",
+                "value": 75
+              },
+              {
+                "color": "dark-green",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "p95 DNS latency",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT window_end AS time, site_id, latency_p95 FROM sentinel.dns_qoe_windows FINAL ORDER BY window_end",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "NXDOMAIN rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT window_end AS time, site_id, nxdomain_rate * 100 AS nxdomain_pct FROM sentinel.dns_qoe_windows FINAL ORDER BY window_end",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Threat categories",
+      "type": "barchart",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT classification, count() AS incidents FROM sentinel.dns_incidents FINAL GROUP BY classification ORDER BY incidents DESC",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Top affected hosts",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT host AS Host, count() AS Incidents, max(risk_score) AS `Max risk` FROM sentinel.dns_incidents FINAL ARRAY JOIN source_hosts AS host GROUP BY host ORDER BY `Max risk` DESC LIMIT 10",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Incidents with evidence",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "sentinel-clickhouse"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "sentinel-clickhouse"
+          },
+          "rawSql": "SELECT classification AS Classification, risk_score AS Risk, site_id AS Site, arrayStringConcat(source_hosts, ', ') AS Hosts, arrayStringConcat(arraySlice(domains, 1, 2), ', ') AS Domains, arrayStringConcat(evidence_descriptions, ' | ') AS Evidence FROM sentinel.dns_incidents FINAL ORDER BY risk_score DESC",
+          "format": 1,
+          "queryType": "sql",
+          "editorType": "sql"
+        }
+      ],
+      "description": "Evidence travels with the score. A risk number nobody can audit is a number an analyst learns to ignore."
+    }
+  ]
+}

@@ -16,6 +16,12 @@
     },
     {
       "path": "../../packages/wazuh-adapter"
+    },
+    {
+      "path": "../../packages/qoe-engine"
+    },
+    {
+      "path": "../../packages/clickhouse-adapter"
     }
   ]
 }

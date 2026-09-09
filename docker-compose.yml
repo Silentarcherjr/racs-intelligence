@@ -33,7 +33,48 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Dev 3's services go below. Append, do not restructure the file. ────────
-  # clickhouse:   QoE storage        (board item 9)
-  # grafana:      QoE dashboards     (board item 10)
-  # wazuh:        alert destination  (board item 7)
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.3
+    container_name: sentinel-clickhouse
+    ports:
+      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:9000:9000"
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      # Applied on first start by the image's entrypoint, which runs the file
+      # through clickhouse-client and so handles multi-statement SQL.
+      - ./infra/clickhouse/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    container_name: sentinel-grafana
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-sentinel}
+      # The jury opens a link; a login wall is friction with no security value
+      # on a loopback-only demo stack.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      CLICKHOUSE_HOST: clickhouse
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
+  # ── Still missing: wazuh (board item 7). The adapter works against the
+  #    file sink and the local receiver today; a real manager goes here.
+
+volumes:
+  clickhouse-data:
+  grafana-data:

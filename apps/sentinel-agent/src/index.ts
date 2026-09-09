@@ -11,6 +11,8 @@ import { Kafka, logLevel } from "kafkajs";
 import type { DnsEvent, Incident } from "@sentinel/dns-schema";
 import { analyzeWindow } from "@sentinel/threat-engine";
 import { sendIncident, sinkFromEnv } from "@sentinel/wazuh-adapter";
+import { BaselineStore, correlate, scoreAllSites } from "@sentinel/qoe-engine";
+import { ClickHouseWriter } from "@sentinel/clickhouse-adapter";
 import { EventWindow } from "./window.js";
 
 function arg(name: string, fallback: string): string {
@@ -30,7 +32,11 @@ const opts = {
   alerts: !process.argv.includes("--no-alerts"),
 };
 
+const ch = process.argv.includes("--clickhouse") ? new ClickHouseWriter() : null;
+/** Raw events are opt-in: at real DNS volume that table dwarfs all the others. */
+const storeEvents = process.argv.includes("--store-events");
 const sink = opts.alerts ? sinkFromEnv() : null;
+const baselines = new BaselineStore();
 
 const window = new EventWindow(opts.windowSec);
 
@@ -75,7 +81,8 @@ async function main(): Promise<void> {
   await consumer.subscribe({ topic: opts.topic, fromBeginning: opts.fromBeginning });
   console.log(
     `sentinel-agent · ${opts.broker} · topic ${opts.topic} · window ${opts.windowSec}s · ` +
-    (sink ? `alerts→${sink.name} at risk ≥${opts.alertMinRisk}` : "alerts off"),
+    (sink ? `alerts→${sink.name} at risk ≥${opts.alertMinRisk}` : "alerts off") +
+    (ch ? " · clickhouse on" : ""),
   );
 
   let received = 0;
@@ -92,9 +99,37 @@ async function main(): Promise<void> {
       void report(inc);
       shown++;
     }
+    // ── QoE per site, then SOC↔NOC attribution (spec §7 MVP-5, §11) ───────
+    const qoeResults = scoreAllSites(events, baselines);
+    for (const qoe of qoeResults) {
+      const corr = correlate(qoe, incidents);
+      ch?.writeQoe(qoe);
+      ch?.writeCorrelation(corr);
+      const base = baselines.get(qoe.window.siteId);
+      if (base) ch?.writeBaseline(base, qoe.window.windowEnd);
+
+      const key = `qoe:${qoe.window.siteId}`;
+      const prev = reported.get(key);
+      if (prev === undefined || Math.abs(qoe.window.score - prev) >= REPORT_DELTA) {
+        reported.set(key, qoe.window.score);
+        console.log(`\n  QoE ${qoe.window.score}/100 (${qoe.grade}) · ${qoe.window.siteId}`);
+        for (const line of qoe.explanation) console.log(`    ${line}`);
+        if (corr.verdict !== "UNKNOWN") {
+          console.log(`    verdict: ${corr.verdict} (correlation ${corr.correlationScore})`);
+          for (const r of corr.reasoning) console.log(`      ${r}`);
+        }
+      }
+    }
+
+    for (const inc of incidents) ch?.writeIncident(inc);
+    if (storeEvents) for (const e of events) ch?.writeEvent(e);
+    void ch?.flush().catch((err: unknown) =>
+      console.error("  ✗ ClickHouse write failed:", err));
+
     if (shown === 0) {
       process.stdout.write(
-        `\r  ${received} events · window ${events.length} · ${incidents.length} incident(s) · no change   `,
+        `\r  ${received} events · window ${events.length} · ${incidents.length} incident(s) · ` +
+        `QoE ${qoeResults.map((q) => `${q.window.siteId}=${q.window.score}`).join(" ")}   `,
       );
     }
   }, opts.analyzeEverySec * 1000);
@@ -115,6 +150,8 @@ async function main(): Promise<void> {
   const shutdown = async (): Promise<void> => {
     clearInterval(timer);
     await consumer.disconnect();
+    // Flush before exiting, or the final window silently never lands.
+    await ch?.close().catch((err: unknown) => console.error("final flush failed:", err));
     process.exit(0);
   };
   process.on("SIGINT", shutdown);
