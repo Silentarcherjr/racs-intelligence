@@ -88,7 +88,18 @@ export function installEgressGuard(opts: GuardOptions = {}): void {
     }
 
     const allowed = isLocalHost(host);
-    attempts.push({ host, port, at: new Date().toISOString(), allowed });
+    const record: EgressAttempt = { host, port, at: new Date().toISOString(), allowed };
+    attempts.push(record);
+
+    // Some clients call connect() without an explicit port in the options
+    // object, which would leave the proof panel showing "host:0". The real
+    // peer is only known once the socket is up, so correct it then.
+    if (allowed) {
+      this.once("connect", () => {
+        if (this.remotePort) record.port = this.remotePort;
+        if (this.remoteAddress) record.host = this.remoteAddress.replace(/^::ffff:/, "");
+      });
+    }
 
     if (!allowed) {
       const msg =
