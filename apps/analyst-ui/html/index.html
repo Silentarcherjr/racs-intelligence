@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sovereign Sentinel — Analyst UI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 20px; color: #38bdf8; }
+    h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #94a3b8; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background: #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+    th {
+      background: #0f172a;
+      font-weight: 600;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:hover { background: #334155; }
+    .risk-high { color: #ef4444; font-weight: 700; }
+    .risk-medium { color: #f59e0b; font-weight: 700; }
+    .risk-low { color: #10b981; font-weight: 700; }
+    .verdict-sec { background: #7f1d1d; padding: 8px 12px; border-radius: 4px; display: inline-block; }
+    .verdict-ops { background: #065f46; padding: 8px 12px; border-radius: 4px; display: inline-block; }
+    .verdict-mixed { background: #78350f; padding: 8px 12px; border-radius: 4px; display: inline-block; }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #475569; cursor: not-allowed; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    .modal.active { display: block; }
+    .modal-content {
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 8px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .modal-close {
+      float: right;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #94a3b8;
+    }
+    .evidence-item {
+      background: #0f172a;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border-left: 4px solid #3b82f6;
+    }
+    .evidence-weight {
+      display: inline-block;
+      background: #3b82f6;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      margin-right: 8px;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #94a3b8;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Sovereign Sentinel — Analyst UI</h1>
+  <p style="margin-bottom: 20px; color: #94a3b8;">Local-first DNS security. All analysis runs on-premise.</p>
+
+  <h2>Incidents</h2>
+  <table id="incidents-table">
+    <thead>
+      <tr>
+        <th>Risk</th>
+        <th>Classification</th>
+        <th>Site</th>
+        <th>Confidence</th>
+        <th>Hosts</th>
+        <th>Domains</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="incidents-body"></tbody>
+  </table>
+
+  <div class="grid">
+    <div>
+      <h2>QoE by Site</h2>
+      <table id="qoe-table">
+        <thead>
+          <tr>
+            <th>Site</th>
+            <th>Score</th>
+            <th>Grade</th>
+            <th>Latency p95</th>
+            <th>NXDOMAIN</th>
+          </tr>
+        </thead>
+        <tbody id="qoe-body"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <h2>SOC / NOC Correlation</h2>
+      <table id="correlations-table">
+        <thead>
+          <tr>
+            <th>Site</th>
+            <th>Verdict</th>
+            <th>QoE</th>
+            <th>Correlation</th>
+          </tr>
+        </thead>
+        <tbody id="correlations-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="incident-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal()">&times;</span>
+      <div id="incident-detail"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadIncidents() {
+      const res = await fetch("/api/incidents");
+      const incidents = await res.json();
+      const tbody = document.getElementById("incidents-body");
+      tbody.innerHTML = incidents.map(inc => `
+        <tr onclick="showIncident('${inc.incident_id}')">
+          <td class="${inc.risk_score >= 70 ? 'risk-high' : inc.risk_score >= 40 ? 'risk-medium' : 'risk-low'}">
+            ${inc.risk_score}
+          </td>
+          <td>${inc.classification}</td>
+          <td>${inc.site_id}</td>
+          <td>${(inc.confidence * 100).toFixed(0)}%</td>
+          <td>${inc.source_hosts.slice(0, 2).join(", ")}${inc.source_hosts.length > 2 ? "..." : ""}</td>
+          <td>${inc.domains.slice(0, 2).join(", ")}${inc.domains.length > 2 ? "..." : ""}</td>
+          <td><button onclick="event.stopPropagation(); showIncident('${inc.incident_id}')">Details</button></td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadQoE() {
+      const res = await fetch("/api/qoe");
+      const qoe = await res.json();
+      const tbody = document.getElementById("qoe-body");
+      tbody.innerHTML = qoe.map(q => `
+        <tr>
+          <td>${q.site_id}</td>
+          <td class="${q.score >= 75 ? 'risk-low' : q.score >= 40 ? 'risk-medium' : 'risk-high'}">${q.score}</td>
+          <td>${q.grade}</td>
+          <td>${q.latency_p95.toFixed(1)} ms</td>
+          <td>${(q.nxdomain_rate * 100).toFixed(1)}%</td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadCorrelations() {
+      const res = await fetch("/api/correlations");
+      const correlations = await res.json();
+      const tbody = document.getElementById("correlations-body");
+      tbody.innerHTML = correlations.map(c => `
+        <tr>
+          <td>${c.site_id}</td>
+          <td>
+            <span class="${c.verdict === 'LIKELY_SECURITY_DRIVEN' ? 'verdict-sec' : c.verdict === 'LIKELY_OPERATIONAL' ? 'verdict-ops' : 'verdict-mixed'}">
+              ${c.verdict}
+            </span>
+          </td>
+          <td>${c.qoe_score}</td>
+          <td>${c.correlation_score.toFixed(2)}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function showIncident(id) {
+      const modal = document.getElementById("incident-modal");
+      const detail = document.getElementById("incident-detail");
+      modal.classList.add("active");
+      detail.innerHTML = '<div class="loading">Loading...</div>';
+
+      const res = await fetch(`/api/incidents/${encodeURIComponent(id)}`);
+      const inc = await res.json();
+
+      if (!inc) {
+        detail.innerHTML = '<p>Incident not found</p>';
+        return;
+      }
+
+      const evidenceTotal = inc.evidence_weights.reduce((a, b) => a + b, 0);
+
+      detail.innerHTML = `
+        <h2 style="color: #38bdf8; margin-bottom: 10px;">${inc.classification}</h2>
+        <p style="margin-bottom: 20px;">
+          <strong>Site:</strong> ${inc.site_id} &middot;
+          <strong>Risk:</strong> <span class="${inc.risk_score >= 70 ? 'risk-high' : inc.risk_score >= 40 ? 'risk-medium' : 'risk-low'}">${inc.risk_score}</span> &middot;
+          <strong>Confidence:</strong> ${(inc.confidence * 100).toFixed(0)}%
+        </p>
+
+        <h3 style="margin-top: 20px; margin-bottom: 10px; color: #94a3b8;">Evidence (total weight: ${evidenceTotal})</h3>
+        ${inc.evidence_descriptions.map((desc, i) => `
+          <div class="evidence-item">
+            <span class="evidence-weight">+${inc.evidence_weights[i]}</span>
+            <strong>${inc.evidence_types[i]}</strong>: ${desc}
+          </div>
+        `).join("")}
+
+        <h3 style="margin-top: 20px; margin-bottom: 10px; color: #94a3b8;">Recommended Action</h3>
+        <p style="background: #0f172a; padding: 12px; border-radius: 4px;">${inc.recommended_action}</p>
+
+        <div style="margin-top: 30px;">
+          <button id="explain-btn" onclick="explainIncident('${inc.incident_id}')">Explain with QVAC</button>
+          <div id="explanation-result" style="margin-top: 15px;"></div>
+        </div>
+      `;
+    }
+
+    function closeModal() {
+      document.getElementById("incident-modal").classList.remove("active");
+    }
+
+    async function explainIncident(id) {
+      const btn = document.getElementById("explain-btn");
+      const result = document.getElementById("explanation-result");
+      btn.disabled = true;
+      btn.textContent = "Loading model...";
+      result.innerHTML = '<div class="loading">QVAC is analyzing the incident. This may take 5-30 seconds...</div>';
+
+      try {
+        const res = await fetch(`/api/explain/${encodeURIComponent(id)}`, { method: "POST" });
+        const data = await res.json();
+
+        if (data.error) {
+          result.innerHTML = `<p style="color: #ef4444;">Error: ${data.error}</p>`;
+        } else {
+          result.innerHTML = `
+            <div style="background: #0f172a; padding: 20px; border-radius: 4px; margin-top: 10px;">
+              <h4 style="color: #38bdf8; margin-bottom: 10px;">QVAC Analysis</h4>
+              <p style="margin-bottom: 15px;"><strong>Summary:</strong> ${data.summary}</p>
+              <p style="margin-bottom: 15px;"><strong>Likely Scenario:</strong> ${data.likely_scenario}</p>
+              <p style="margin-bottom: 15px;"><strong>Confidence:</strong> ${data.confidence}</p>
+              <p style="margin-bottom: 15px;"><strong>Reasoning:</strong></p>
+              <ul style="margin-left: 20px;">
+                ${data.reasoning_evidence.map(r => `<li>${r}</li>`).join("")}
+              </ul>
+              <p style="margin-top: 15px;"><strong>Recommended Next Action:</strong> ${data.recommended_next_action}</p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        result.innerHTML = `<p style="color: #ef4444;">Failed: ${err.message}</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Explain with QVAC";
+      }
+    }
+
+    loadIncidents();
+    loadQoE();
+    loadCorrelations();
+  </script>
+</body>
+</html>
