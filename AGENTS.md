@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **12/13 Must Haves done; only the video is left.**
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **12/13 Must Haves; stack reproducible in Docker. Only the video is left.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -316,9 +316,8 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
       botnet activity" for a typosquat, which the evidence does not support (spec §20
       rule 1). Real incidents came back accurate; watch it, don't block on it.
 - [ ] 🔴 **Record the 5-minute video.** The last remaining Must Have (spec §29, §31).
-- [ ] 🔴 **Nobody has run `docker-compose.yml`.** Kafka, ClickHouse and Grafana were all
-      verified natively on Dev 1's machine. Until someone with Docker runs it, the jury
-      cannot reproduce the project — and spec §38 requires that.
+- [x] ~~Nobody has run `docker-compose.yml`~~ — **verified end to end (PR #10)** on
+      colima 0.10.3 / Docker 29.5.2. The jury can reproduce the project.
 - [ ] **Make the repo public before submitting** (or grant jury access). Spec §38 requires
       submission links to work without credentials.
 - [ ] Verify MIT is acceptable if Track 02 is claimed (spec §34 says verify, don't assume).
@@ -378,6 +377,31 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) — docker-compose verified (PR #10)
+Did:        Installed colima (no GUI, no admin needed) and ran the compose stack for the
+            first time. It exposed **four bugs a native install physically cannot show**:
+            (1) the ClickHouse image assigns `default` a random password, so every client
+            failed in a container and worked natively — fixed with explicit credentials
+            wired through five places, not by disabling auth;
+            (2) Grafana provisioning interpolates `${VAR}` but has **no** `:-default`
+            syntax, so the datasource got an invalid host and failed with a message that
+            reads like a network fault;
+            (3) `source .env` breaks on a path containing spaces while Compose parses the
+            same file happily — the variable just silently ends up unset;
+            (4) the `${VAR:+a}${VAR:-b}` trap for the third time, in the demo banner.
+            Verified: all services healthy, schema applied by the entrypoint, Grafana
+            datasource healthy, dashboard queries returning real rows through the
+            container, demo producing 66 events → 6 incidents → 3 explanations → 5 alerts,
+            zero-egress PASS, 21/21 tests.
+Did not:    **The video.** That is the only Must Have left. No Active Evidence Acquisition,
+            no VisionPsy flow, no "Ask Sentinel", no benchmarks doc.
+Broken:     Nothing known.
+Contracts:  ClickHouse now needs `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` (defaults
+            `sentinel`/`sentinel` in `.env.example`). Scripts load `.env` themselves.
+Next:       **Record the video.** `docker compose up -d && ./scripts/bootstrap.sh &&
+            ./scripts/demo.sh` is now the whole setup, and it is reproducible on a clean
+            machine.
 
 ### 2026-09-09 — Claude (Opus 5) — demo, README, UI merged (PRs #9, #8)
 Did:        Wrote `scripts/bootstrap.sh` and `scripts/demo.sh`, and the full README —
