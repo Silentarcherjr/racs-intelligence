@@ -1,0 +1,59 @@
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# --- Evidence & captures: local-only by design (zero-egress) ---
+evidence/
+screenshots/
+*.pcap
+*.pcapng
+
+# --- Node ---
+node_modules/
+dist/
+build/
+.next/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Service data volumes (docker-compose) ---
+data/
+volumes/
+infra/**/data/
+clickhouse-data/
+grafana-data/
+kafka-data/
+wazuh-data/
+
+# --- Generated datasets & benchmark output ---
+datasets/generated/
+benchmarks/results/*.json
+!benchmarks/results/.gitkeep
+
+# --- Local models (too large for git) ---
+models/
+*.gguf
+*.onnx
+*.safetensors
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

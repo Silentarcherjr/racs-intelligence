@@ -1,0 +1,7 @@
+# AGENTS.md is append-heavy shared state edited by several agents.
+# Union merge prevents a blocking conflict from silently deleting another
+# agent's handoff entry. It can leave duplicated rows — clean them on main.
+AGENTS.md merge=union
+
+# Keep line endings sane across machines
+* text=auto eol=lf
