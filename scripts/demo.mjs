@@ -135,6 +135,9 @@ await new Promise((res) => {
 
 // Let the last window be analysed. With explanations on, the first one also
 // pays the ~15s cold model load; the agent drains anything still in flight.
-await sleep(investigate ? 75000 : explain ? 45000 : 8000);
+// Text and vision share one serial queue. Give the visual path enough time to
+// finish after the producer stops, otherwise the demo exits with VisionPsy
+// still queued and the UI truthfully reports zero completed vision calls.
+await sleep(investigate && explain ? 150000 : investigate ? 75000 : explain ? 45000 : 8000);
 await cleanup();
 process.exit(0);

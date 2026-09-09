@@ -11,9 +11,20 @@
  */
 
 import { createServer } from "node:http";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { egressReport } from "@sentinel/egress-guard";
 
-type ModelStat = { id: string; quantization: string; loaded: boolean; calls: number; totalMs: number };
+type ModelStat = { id: string; quantization: string; available: boolean; loaded: boolean; calls: number; totalMs: number };
+
+const modelDir = process.env["QVAC_MODELS_DIR"] ?? "";
+const visionDir = process.env["QVAC_VISION_MODELS_DIR"] ?? modelDir;
+const textAvailable = Boolean(modelDir && existsSync(join(modelDir, "medpsy-4b-q4_k_m-imat.gguf")));
+const visionAvailable = Boolean(
+  visionDir &&
+  existsSync(join(visionDir, "visionpsy-nano-460m-flash-q4_k_m-imat.gguf")) &&
+  existsSync(join(visionDir, "mmproj-visionpsy-nano-460m-flash-q8.gguf")),
+);
 
 const started = Date.now();
 
@@ -22,8 +33,8 @@ const state = {
   windowSize: 0,
   incidents: 0,
   models: {
-    text: { id: "qvac/MedPsy-4B-GGUF", quantization: "q4_k_m-imat", loaded: false, calls: 0, totalMs: 0 } as ModelStat,
-    vision: { id: "qvac/VisionPsy-Nano-460M-Flash-GGUFs", quantization: "q4_k_m-imat + mmproj q8", loaded: false, calls: 0, totalMs: 0 } as ModelStat,
+    text: { id: "qvac/MedPsy-4B-GGUF", quantization: "q4_k_m-imat", available: textAvailable, loaded: false, calls: 0, totalMs: 0 } as ModelStat,
+    vision: { id: "qvac/VisionPsy-Nano-460M-Flash-GGUFs", quantization: "q4_k_m-imat + mmproj q8", available: visionAvailable, loaded: false, calls: 0, totalMs: 0 } as ModelStat,
   },
   renders: { count: 0, totalMs: 0 },
   decisions: [] as Array<{ at: string; domain: string; state: string; action: string; rationale: string }>,

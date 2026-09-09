@@ -89,6 +89,15 @@ ENGINE = ReplacingMergeTree(updated_at)
 PARTITION BY toYYYYMMDD(created_at)
 ORDER BY (site_id, incident_id);
 
+-- Migrate databases created before visual investigation was added. CREATE TABLE
+-- IF NOT EXISTS does not alter an existing ClickHouse table.
+ALTER TABLE sentinel.dns_incidents
+    ADD COLUMN IF NOT EXISTS screenshot_path String DEFAULT '';
+ALTER TABLE sentinel.dns_incidents
+    ADD COLUMN IF NOT EXISTS visual_description String DEFAULT '';
+ALTER TABLE sentinel.dns_incidents
+    ADD COLUMN IF NOT EXISTS visual_model String DEFAULT '';
+
 -- Rolling per-site baselines (spec §14).
 CREATE TABLE IF NOT EXISTS sentinel.dns_site_baselines
 (

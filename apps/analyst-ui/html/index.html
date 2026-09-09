@@ -243,7 +243,7 @@
       const ms = (n) => (n ? `${(n / 1000).toFixed(1)}s avg` : "—");
       const model = (m, role) => `
         <div class="rt-card">
-          <div class="rt-label">${role} · ${m.loaded ? "loaded" : "not loaded"}</div>
+          <div class="rt-label">${role} · ${m.loaded ? "loaded" : m.available ? "ready" : "not available"}</div>
           <div class="rt-value" style="font-size:14px">${m.id.split("/").pop()}</div>
           <div class="rt-sub">${m.quantization}<br>${m.calls} call${m.calls === 1 ? "" : "s"} · ${ms(m.avgMs)}</div>
         </div>`;
