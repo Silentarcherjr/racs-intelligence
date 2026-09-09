@@ -1,0 +1,22 @@
+<!--
+  Wazuh decoder for Sovereign Sentinel alerts.
+
+  Install to /var/ossec/etc/decoders/ on the Wazuh manager, then point a
+  logcollector at the alerts file the agent writes:
+
+    <localfile>
+      <log_format>json</log_format>
+      <location>/var/ossec/logs/sentinel-alerts.json</location>
+    </localfile>
+
+  Wazuh decodes JSON natively, so this only tags the source; the rules in
+  local_rules.xml do the severity work.
+-->
+<decoder name="sovereign-sentinel">
+  <program_name>^sovereign-sentinel$</program_name>
+</decoder>
+
+<decoder name="sovereign-sentinel-json">
+  <parent>sovereign-sentinel</parent>
+  <plugin_decoder>JSON_Decoder</plugin_decoder>
+</decoder>

@@ -11,6 +11,9 @@
       "path": "./packages/threat-engine"
     },
     {
+      "path": "./packages/wazuh-adapter"
+    },
+    {
       "path": "./apps/synthetic-producer"
     },
     {
