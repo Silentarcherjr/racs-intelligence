@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **Everything is built and wired. Only the video remains.**
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **Feature-complete and demo-ready. Only the video remains.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -157,7 +157,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 11 | SOC↔NOC correlation | **DONE ✅** | Claude (Dev 3's lane) | spec §11 |
 | 12 | Active investigator + sandbox | **DONE ✅** | Claude | `packages/evidence-engine`. Deterministic action selection (spec §8.2), throwaway Chromium context, screenshot only. **Works in isolation; the agent does not call it yet.** |
 | 13 | VisionPsy path | **DONE ✅** | Claude | Verified: risk 64 → 89 on a rendered decoy page. ~2s render + ~5.5s for four vision calls. |
-| 14 | Analyst UI | **DONE ✅** | Dev 2 (`frictionspp-svg`) | `apps/analyst-ui` on `127.0.0.1:3001`. Reads live ClickHouse data. "Ask Sentinel" (spec §12) is still not built. |
+| 14 | Analyst UI | **DONE ✅** | Dev 2 + Claude | `apps/analyst-ui` on `127.0.0.1:3001`, refreshes every 4s. Incidents with full evidence, **the sandbox screenshot**, QoE, SOC/NOC verdict, and a **live runtime panel** (models, device, latency, investigator decisions, egress counters). "Ask Sentinel" (spec §12) still not built. |
 | 15 | README + docs | **DONE ✅** | Claude | All 21 sections of spec §33 filled from measured values. `docs/ZERO_EGRESS.md` + `docs/ONBOARDING.md`. Missing: ARCHITECTURE, THREAT_MODEL, TRACK_MAPPING, DEMO. |
 | 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
 | 17 | Zero-egress proof | **DONE ✅** | Claude | Three layers: in-process socket guard (`packages/egress-guard`, armed unconditionally), OS-level `lsof` check (`scripts/verify-zero-egress.sh`, passing), and the Wi-Fi-off test. `docs/ZERO_EGRESS.md` states the claim precisely and lists what it does **not** prove. Never says "air-gapped" — there is a test for that. |
@@ -253,8 +253,9 @@ Canonical TypeScript types (`DnsEvent`, `ThreatEvidence`, `Incident`, `QoeWindow
 | Model weights location | Env var `QVAC_MODELS_DIR` (not yet implemented). Weights are **never** committed — `.gitignore` blocks `models/` and `*.gguf` | TBD |
 | Hardware of record | Apple M1 Max, 32 GB (README §33 item 8) | recorded |
 | QVAC analyst prompt + response schema | spec §20 | to be implemented in `packages/qvac-runtime/` |
-| Env vars | `.env.example` | TBD |
-| Service ports | — | TBD |
+| Env vars | `.env.example`. Scripts and the UI parse it line by line (last key wins), **not** `source` — a path with spaces breaks bash while Compose accepts it | **LOCKED** |
+| Service ports | kafka `9092` · clickhouse `8123` · grafana `3000` · **analyst UI `3001`** · **agent status `3002`** · wazuh receiver `8081` · decoy site `8099` | **LOCKED** |
+| Agent status endpoint | `http://127.0.0.1:3002/status` — live counters the UI renders. Every number from a real counter, none constant | **LOCKED** |
 
 ---
 
@@ -378,6 +379,41 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Claude (Opus 5) + Dev 2 — demo surface finished (PRs #17–#20)
+Did:        Made the invisible visible, which was the last real gap: almost everything
+            interesting here (which model, on what device, why the investigator chose to
+            render, that nothing left the machine) could only be seen by reading source.
+            - **PR #17** UI shows the sandbox screenshot beside the DNS evidence. Added
+              `screenshot_path` / `visual_description` / `visual_model` to `dns_incidents`;
+              the adapter had been dropping them because it stores evidence
+              type/weight/description and discards `value`, where the path lived.
+              Screenshots served read-only through `basename()` + a strict pattern.
+            - **PR #18** Live runtime panel fed by `127.0.0.1:3002/status`.
+            - **PR #19** Screenshot path split on `"/"` — `path.join()` yields backslashes
+              on Windows, so the image 404'd there and worked here. Pinned `playwright`
+              in the package that imports it.
+            - **Dev 2 (`frictionspp-svg`)** added a three-state model status
+              (available / loaded / not available) and raised the demo settle time:
+              text and vision share one serial queue, so the run was exiting with
+              VisionPsy still queued and the panel truthfully reported zero vision calls.
+            - **PR #20** Execution device was hardcoded to "Apple Silicon GPU (Metal)" —
+              true here, a lie everywhere else, on the one panel whose job is proving
+              where inference runs. Now from `os.platform/arch/cpus`, and it says "GPU
+              **requested**" off macOS because the accelerator the SDK picks is not
+              observable from Node. Added `--wait` so the demo holds until Enter.
+            Also fixed inference timing that measured *around* the serial queue and
+            reported 21s per vision call for ~5s of work.
+Did not:    **The video** — still the only Must Have outstanding. No "Ask Sentinel",
+            no Track 02 benchmarks doc, no ARCHITECTURE/THREAT_MODEL/TRACK_MAPPING docs.
+Broken:     Nothing known. **Nobody has run this on Windows end to end** — Dev 2 fixed
+            what they hit, but treat Windows as unverified.
+Contracts:  Ports and the status endpoint locked in §6. `--wait` on the demo.
+Next:       **Record the video.** Command: `npm run demo -- typosquat --wait`, with the
+            analyst UI open at `127.0.0.1:3001`. It brings the stack up and holds until
+            Enter, so the recording opens on a live incident rather than on Kafka's boot
+            logs. Do one warm-up run first — the first explanation pays a ~15s cold model
+            load. Close with the Wi-Fi switched off and the demo rerun.
 
 ### 2026-09-09 — Claude (Opus 5) — investigation wired; feature-complete (PR #16)
 Did:        Wired `decideNextAction` → `renderDomain` → `analyzeScreenshot` →
