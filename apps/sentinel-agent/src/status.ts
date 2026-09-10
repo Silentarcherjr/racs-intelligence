@@ -11,6 +11,7 @@
  */
 
 import { createServer } from "node:http";
+import os from "node:os";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { egressReport } from "@sentinel/egress-guard";
@@ -25,6 +26,34 @@ const visionAvailable = Boolean(
   existsSync(join(visionDir, "visionpsy-nano-460m-flash-q4_k_m-imat.gguf")) &&
   existsSync(join(visionDir, "mmproj-visionpsy-nano-460m-flash-q8.gguf")),
 );
+
+/**
+ * Describes the machine this is actually running on.
+ *
+ * This was hardcoded to "Apple Silicon GPU (Metal)" — which is true on the
+ * machine it was written on and a lie everywhere else. A panel whose whole
+ * purpose is to prove where inference happens cannot state the wrong hardware,
+ * and a jury running it on Windows would have been told it was using Metal.
+ *
+ * What can be verified is reported. The accelerator the SDK ultimately picks
+ * is not observable from here, so it is described as requested rather than
+ * asserted as fact.
+ */
+function describeDevice(): string {
+  const arch = os.arch();
+  const cpu = os.cpus()[0]?.model?.trim();
+
+  if (os.platform() === "darwin" && arch === "arm64") {
+    return `Apple Silicon (${cpu ?? "arm64"}) — GPU via Metal, on this machine`;
+  }
+  if (os.platform() === "win32") {
+    return `Windows ${arch} (${cpu ?? "unknown CPU"}) — GPU requested, on this machine`;
+  }
+  if (os.platform() === "linux") {
+    return `Linux ${arch} (${cpu ?? "unknown CPU"}) — GPU requested, on this machine`;
+  }
+  return `${os.platform()} ${arch} (${cpu ?? "unknown CPU"}) — on this machine`;
+}
 
 const started = Date.now();
 
@@ -81,7 +110,7 @@ function snapshot(): unknown {
     eventsConsumed: state.eventsConsumed,
     windowSize: state.windowSize,
     incidents: state.incidents,
-    device: "Apple Silicon GPU (Metal) — on this machine",
+    device: describeDevice(),
     models: {
       text: { ...state.models.text, avgMs: avg(state.models.text) },
       vision: { ...state.models.vision, avgMs: avg(state.models.vision) },
