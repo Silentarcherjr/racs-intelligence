@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **Feature-complete and demo-ready. Only the video remains.**
+**Last updated:** 2026-09-09 by Claude (Opus 5) — **Feature-complete, verified on macOS and Windows. Only the video remains.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -256,6 +256,8 @@ Canonical TypeScript types (`DnsEvent`, `ThreatEvidence`, `Incident`, `QoeWindow
 | Env vars | `.env.example`. Scripts and the UI parse it line by line (last key wins), **not** `source` — a path with spaces breaks bash while Compose accepts it | **LOCKED** |
 | Service ports | kafka `9092` · clickhouse `8123` · grafana `3000` · **analyst UI `3001`** · **agent status `3002`** · wazuh receiver `8081` · decoy site `8099` | **LOCKED** |
 | Agent status endpoint | `http://127.0.0.1:3002/status` — live counters the UI renders. Every number from a real counter, none constant | **LOCKED** |
+| Evidence directory | `out/evidence`, resolved from the **repo root** via `__dirname/../../..`, never `process.cwd()` — the UI is started from its workspace dir and cwd-relative paths 404 there | **LOCKED** |
+| Demo flags | `--wait` (hold until Enter) · `--keep-alive` (leave services and models up after the stream) | **LOCKED** |
 
 ---
 
@@ -379,6 +381,31 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-09 — Ralu13 (Codex), reviewed and merged by Claude — Windows verified (PR #21)
+Did:        **The first genuine end-to-end Windows run**, and the first branch on this
+            project that was up to date with `main` before opening a PR — which is why it
+            merged without conflict. Fixed screenshot serving: the UI resolved
+            `out/evidence` from `process.cwd()`, and `npm start -w @sentinel/analyst-ui`
+            sets cwd to the workspace directory, so every image 404'd there while working
+            when started from the repo root. Now resolved from the module location.
+            Stopped the demo wiping all of `out/`, which was breaking image links for
+            incidents already stored in ClickHouse. Added `--keep-alive`. Changed the
+            Grafana window from a fixed 9 Sep interval to `now-24h` so live data appears.
+            Wrote `docs/LOCAL_WINDOWS.md`.
+            Their Windows run: 48 events, 12 text analyses, 18 vision analyses, all 18
+            screenshot links HTTP 200, both models still loaded after the stream.
+            Verified again on macOS before merge: build clean, 21/21 tests, original 404
+            reproduced and confirmed fixed, traversal on `/evidence/` still 404.
+Did not:    **Wi-Fi-off / OS-level egress verification on Windows** — stated plainly by
+            the author rather than claimed. `scripts/verify-zero-egress.sh` needs `lsof`,
+            so on Windows the in-process guard and the SOVEREIGN MODE panel are the proof.
+Broken:     Nothing. Two things to know: screenshots in `out/evidence` now **accumulate**
+            with no pruning (correct trade — wiping them broke stored links — but it grows);
+            and `now-24h` is right for `generate` scenarios, while the committed fixture is
+            stamped `2026-09-09T12:00Z` and will fall outside that window after the 10th.
+Contracts:  Evidence dir resolution and the two demo flags locked in §6.
+Next:       **The video.** Nothing else is outstanding.
 
 ### 2026-09-09 — Claude (Opus 5) + Dev 2 — demo surface finished (PRs #17–#20)
 Did:        Made the invisible visible, which was the last real gap: almost everything
