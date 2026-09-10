@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-09 by Claude (Opus 5) — **Feature-complete, verified on macOS and Windows. Only the video remains.**
+**Last updated:** 2026-09-10 by Claude (Opus 5) — **Rebranded to RACS Intelligence. Only the video remains.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -381,6 +381,34 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-10 — Claude (Opus 5) — rebrand and Spanish (PRs #23, #24)
+Did:        The hackathon entry is registered as **RACS Intelligence**, so that is now the
+            product name everywhere user-facing: UI wordmark and title, README, docs,
+            Grafana dashboard, Wazuh decoder/rules/alert field, compose and schema headers,
+            LICENSE. The repo is renamed `racs-intelligence` (GitHub redirects the old URL,
+            but teammates should run `git remote set-url origin`).
+            The Wazuh chain was renamed **as a unit** — alert field, decoder `program_name`
+            and rule matcher. Renaming any one alone breaks classification silently.
+            UI now defaults to **Spanish** with an ES/EN switcher; it translates by walking
+            text nodes, replaces only known UI phrases, and never translates model output.
+            `README.md` is Spanish, `README.en.md` keeps the English, cross-linked.
+            Repo description and eight topics set.
+Did not:    **The video** — the only Must Have outstanding. Did not rename the internal
+            `@sentinel/*` packages (51 files of imports, zero jury-visible benefit, real
+            breakage risk near a deadline) nor `SOVEREIGN_SENTINEL_SPEC.md` (renaming a
+            historical spec would misrepresent what was written at the start).
+Broken:     Nothing. Two open items below.
+Contracts:  Product name = **RACS Intelligence**. Wazuh integration key =
+            `racs-intelligence` in all three places. UI assets are an allowlist in
+            `apps/analyst-ui/src/index.ts` — a new file 404s until it is listed.
+Next:       **Anthony takes over from here.** Two things remain:
+              1. Record the 5-minute video. `npm run demo -- typosquat --wait --keep-alive`
+                 with the UI at 127.0.0.1:3001. Warm-up run first (~15s cold model load).
+                 Close with Wi-Fi off and the demo rerun.
+              2. **Make the repo public before submitting** — spec §38 requires the jury
+                 to reach it without credentials. It is private right now.
+            Also open: whether Track 02 can be claimed (we do no RAG — see README §3).
 
 ### 2026-09-10 — LowCrime, reviewed and merged by Claude — dashboard rewrite (PR #22)
 Did:        Rewrote `apps/analyst-ui` as a full dashboard: sidebar navigation, metrics,
