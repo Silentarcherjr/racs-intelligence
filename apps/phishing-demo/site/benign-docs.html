@@ -1,0 +1,26 @@
+<!--
+  Second control page. A documentation site: text-heavy, has a search box (so
+  the model must distinguish an input field from a CREDENTIAL field), no brand
+  impersonation, no urgency.
+-->
+<meta charset="utf-8">
+<title>Meridian SDK — Documentación</title>
+<style>
+  body{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fbfbfd;color:#24292f}
+  header{border-bottom:1px solid #d8dee4;padding:14px 32px;display:flex;gap:20px;align-items:center}
+  input{padding:7px 11px;border:1px solid #d8dee4;border-radius:6px;width:260px}
+  main{max-width:760px;margin:40px auto;padding:0 24px;line-height:1.75}
+  pre{background:#f6f8fa;padding:16px;border-radius:6px;overflow:auto}
+  footer{color:#8b949e;font-size:12px;text-align:center;padding:28px}
+</style>
+<header><strong>Meridian SDK</strong><input type="search" placeholder="Buscar en la documentación"></header>
+<main>
+  <h1>Guía de inicio</h1>
+  <p>Instala el paquete y crea un cliente. Todas las llamadas son asíncronas.</p>
+  <pre>npm install meridian
+const client = new Meridian({ region: "pa" });
+await client.ping();</pre>
+  <h2>Configuración</h2>
+  <p>El cliente lee <code>MERIDIAN_REGION</code> del entorno si no se pasa explícitamente.</p>
+</main>
+<footer>SYNTHETIC TEST ARTIFACT — proyecto ficticio, generado para pruebas de detección.</footer>
