@@ -42,7 +42,7 @@ telemetry → local features → QVAC local inference → local evidence → loc
 | **04 — Ovnicom** | **Claimed.** Every stated requirement is implemented and verified. |
 | **05 — Caja de Ahorros** | **Claimed.** See §11 for the banking scenario. |
 | **03 — General Ranking** | Claimed. |
-| **02 — QVAC Psy** | **Not claimed.** VisionPsy runs locally and is benchmarked (§18), but the visual investigation flow is not integrated, so the model is not *central* to the product. Claiming it would be dishonest — see §19. |
+| **02 — QVAC Psy** | **Claimed.** VisionPsy is central: the visual investigation flow is integrated and working, with measured benchmarks in §18. **We perform no RAG operations** — stated in §19. |
 
 ## 4. Architecture
 

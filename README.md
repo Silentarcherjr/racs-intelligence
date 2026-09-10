@@ -46,7 +46,7 @@ telemetría → features locales → inferencia QVAC local → evidencia local �
 | **04 — Ovnicom** | **Reclamado.** Todos los requisitos implementados y verificados. |
 | **05 — Caja de Ahorros** | **Reclamado.** Ver el escenario bancario en §11. |
 | **03 — Ranking General** | Reclamado. |
-| **02 — QVAC Psy** | **Pendiente de confirmar.** VisionPsy ya es central: el flujo de investigación visual está integrado y funcionando. Falta verificar si el requisito de operaciones RAG es obligatorio — no hacemos RAG. Ver §19. |
+| **02 — QVAC Psy** | **Reclamado.** VisionPsy es central: el flujo de investigación visual está integrado y funcionando, con benchmarks medidos en §18. **No realizamos operaciones RAG** — declarado en §19. |
 
 ## 4. Arquitectura
 
@@ -275,9 +275,41 @@ pasan.** Los dos relevantes:
 | `medpsy-4b-gguf` | `q4_k_m-imat` | **72.6 tok/s** |
 | `visionpsy-460m-flash-gguf` | `q4_k_m-imat` | **238.0 tok/s**, TTFT ~0.8 s |
 
-En el pipeline en ejecución: **~15 s de carga en frío una vez, luego ~5 s por explicación**
-(medidos 5.5 / 4.4 / 5.1 s) y **~5 s por análisis visual** más ~100 ms de render. Por eso
-las explicaciones tienen umbral: por defecto solo se explican incidentes de riesgo ≥ 70.
+### Track 02 — benchmark de VisionPsy
+
+```bash
+node benchmarks/run-vision-benchmark.mjs
+```
+
+Registro completo en [`benchmarks/results/vision-benchmark.json`](benchmarks/results/vision-benchmark.json),
+con el formato exacto del spec §22. Última corrida medida:
+
+| Métrica | Valor |
+|---|---|
+| Carga del modelo | 968 ms |
+| TTFT promedio | 1143 ms |
+| Throughput | 234.9 tok/s |
+| Precisión detección de formulario de credenciales | 0.75 |
+| Precisión detección de suplantación de marca | 0.5 |
+| Falsos positivos | 2 de 12 |
+| Falsos negativos | 7 de 12 |
+
+El set de evaluación tiene **4 casos** — dos páginas de phishing de
+credenciales y dos controles benignos — evaluados **3 veces**, porque un
+modelo de 460M no es determinista: corridas consecutivas del mismo set dieron 1.00 y 0.75
+en detección de formularios. Las precisiones son sobre las 12
+evaluaciones.
+
+**La precisión de marca de 0.5 es una debilidad
+real**, no un error de medición: el modelo responde "no" a la pregunta de institución
+financiera en páginas que él mismo identifica como un banco. Reportamos su respuesta
+textual en lugar de corregirla — sobrescribirla haría que la evidencia fuera nuestra y no
+suya. Los falsos positivos, que son los que hacen que un SOC apague un feed, se mantienen
+bajos.
+
+El throughput se mide en una generación larga aparte. Las llamadas de clasificación
+responden en una palabra, así que su tiempo lo domina el encoding de la imagen y dividir
+tokens entre segundos ahí no mide nada útil.
 
 ## 19. Limitaciones
 
