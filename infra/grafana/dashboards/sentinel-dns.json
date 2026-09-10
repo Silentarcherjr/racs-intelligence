@@ -1,6 +1,6 @@
 {
   "uid": "sentinel-dns",
-  "title": "Sovereign Sentinel \u2014 DNS Security & QoE",
+  "title": "RACS Intelligence \u2014 DNS Security & QoE",
   "description": "Local-first DNS security and quality. All analysis runs on-premise; no telemetry leaves the machine.",
   "tags": [
     "sentinel",

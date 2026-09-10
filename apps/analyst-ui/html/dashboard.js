@@ -219,7 +219,7 @@ async function explainIncident(id) {
 }
 $('export-button').addEventListener('click',()=>{
   if(!state.hasData) {notify('Connect to the local data source before exporting.');return;}
-  const report = {product:'Sovereign Sentinel',generatedAt:new Date().toISOString(),dataSource:'Local synthetic telemetry',filters:{search:$('incident-search').value,risk:$('risk-filter').value},incidents:filteredIncidents(),qoe:state.qoe,correlations:state.correlations};
+  const report = {product:'RACS Intelligence',generatedAt:new Date().toISOString(),dataSource:'Local synthetic telemetry',filters:{search:$('incident-search').value,risk:$('risk-filter').value},incidents:filteredIncidents(),qoe:state.qoe,correlations:state.correlations};
   const url = URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
   const link = document.createElement('a');link.href=url;link.download='sentinel-incidents-'+new Date().toISOString().slice(0,10)+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   notify('Incident report exported locally.');

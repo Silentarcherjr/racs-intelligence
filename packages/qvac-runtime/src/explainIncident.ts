@@ -29,7 +29,7 @@ function modelSrc(): string {
   if (!dir) {
     throw new Error(
       `[qvac-runtime] QVAC_MODELS_DIR is not set.\n` +
-        `  Sovereign Sentinel never downloads model weights — they must already be on disk.\n` +
+        `  RACS Intelligence never downloads model weights — they must already be on disk.\n` +
         `  Point QVAC_MODELS_DIR at the directory containing ${MODEL_FILENAME}.\n` +
         `  See .env.example and AGENTS.md §6.`,
     );

@@ -1,4 +1,4 @@
-# Sovereign Sentinel — local stack.
+# RACS Intelligence — local stack.
 #
 # Verified end to end on 2026-09-09 (colima 0.10.3 / Docker 29.5.2, Apple
 # Silicon): all three services healthy, ClickHouse schema applied by the

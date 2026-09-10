@@ -1,4 +1,4 @@
-# AGENTS.md — Sovereign Sentinel
+# AGENTS.md — RACS Intelligence
 
 **Purpose of this file:** shared memory between every AI agent (Claude, Codex, Astra, Cursor, …) and every human working on this repo. Multiple agents work on this project in separate sessions with no shared context. This file *is* the shared context.
 
@@ -26,7 +26,7 @@
 
 ## 1. The project in 60 seconds
 
-**Sovereign Sentinel** — a local-first ("zero-egress") AI security analyst for DNS telemetry in regulated infrastructure (banks, government, healthcare).
+**RACS Intelligence** — a local-first ("zero-egress") AI security analyst for DNS telemetry in regulated infrastructure (banks, government, healthcare).
 
 Pipeline: `synthetic dnstap → Vector → Kafka → Sentinel → Wazuh (alerts) + ClickHouse → Grafana (QoE)`.
 
@@ -80,7 +80,7 @@ Sentinel does three things nothing else in the room does:
 
 | File | What it is |
 |---|---|
-| **Repo** | `https://github.com/Silentarcherjr/sovereign-sentinel` — **private, must be made public before submission.** Clone it; never work on a shared filesystem. |
+| **Repo** | `https://github.com/Silentarcherjr/racs-intelligence` — **private, must be made public before submission.** Clone it; never work on a shared filesystem. |
 | `SOVEREIGN_SENTINEL_SPEC.md` | Master spec. Source of truth for requirements, data models, demo script, judging criteria. |
 | `AGENTS.md` (this file) | Shared agent memory: current state, contracts, ownership, handoff log. |
 | `CLAUDE.md` | One-line pointer to this file, because Claude Code looks for `CLAUDE.md`. **Never put content in it.** |
@@ -303,7 +303,7 @@ safety net; if it leaves duplicated rows, clean them on `main`.
 Add here instead of guessing or editing another lane. Remove when resolved (and log the resolution).
 
 - [ ] **Collaborators invited, waiting on acceptance** — `frictionspp-svg`, `LowCrime`,
-      `Ralu13` at <https://github.com/Silentarcherjr/sovereign-sentinel/invitations>.
+      `Ralu13` at <https://github.com/Silentarcherjr/racs-intelligence/invitations>.
 - [x] ~~SDK vs `./qvac serve`~~ — **DECIDED 2026-09-09: `@qvac/sdk` only.** `serve` is a
       dev convenience, never a shipped path. Locked in §6.
 - [x] ~~Do we download VisionPsy?~~ — **DECIDED 2026-09-09: yes, download both models
@@ -400,7 +400,7 @@ Broken:     Nothing. **Open question for the team, not a defect:** the page now 
             own name. If it belongs to a third party it must come out before submission —
             a jury reads someone else's branding on the product as impersonation, and the
             README declares no such affiliation. The product name is untouched:
-            `Sovereign Sentinel` everywhere it matters.
+            `RACS Intelligence` everywhere it matters.
 Contracts:  UI assets are an explicit allowlist in `apps/analyst-ui/src/index.ts`. Adding
             a new asset means adding it there — a new file will 404 until you do.
 Next:       **The video.** Still the only Must Have outstanding.
@@ -738,7 +738,7 @@ Did:        Renamed `agents.md` → `AGENTS.md` (the name other tools auto-detec
             `feature/*` → PR → `main`, no `dev` branch, and **AGENTS.md is not edited in
             feature branches**. Team confirmed at 4.
             Installed `gh` CLI, created the private repo
-            `Silentarcherjr/sovereign-sentinel` and pushed `main`.
+            `Silentarcherjr/racs-intelligence` and pushed `main`.
 Did not:    No collaborators added — needs the other 3 GitHub usernames.
             No application code, no repo layout under `apps/`/`packages/`, no
             `docker-compose.yml`, no `.env.example`. README is a skeleton: every technical

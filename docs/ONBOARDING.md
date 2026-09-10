@@ -1,4 +1,4 @@
-# Onboarding — Sovereign Sentinel
+# Onboarding — RACS Intelligence
 
 For a new developer joining the project on their own machine, with their own AI agent.
 
@@ -7,7 +7,7 @@ For a new developer joining the project on their own machine, with their own AI 
 ## Step 0 — Human, before anything
 
 1. Accept the repo invitation:
-   <https://github.com/Silentarcherjr/sovereign-sentinel/invitations>
+   <https://github.com/Silentarcherjr/racs-intelligence/invitations>
 2. Make sure you have an AI coding agent installed. If not, pick one:
 
    ```bash
@@ -49,8 +49,8 @@ operativo y usa el gestor de paquetes correcto.
 5. Cuando te confirme que ya autoricé, valida con: gh auth status
 
 6. Clona el repo y entra:
-   git clone https://github.com/Silentarcherjr/sovereign-sentinel.git
-   cd sovereign-sentinel
+   git clone https://github.com/Silentarcherjr/racs-intelligence.git
+   cd racs-intelligence
 
 7. Lee AGENTS.md COMPLETO. Es la fuente de verdad del proyecto: reglas,
    qué carpetas me tocan, estado actual y el log de lo que hicieron los

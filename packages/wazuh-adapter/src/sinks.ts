@@ -60,7 +60,7 @@ export class HttpSink implements AlertSink {
     if (!local) {
       throw new Error(
         `refusing to send alerts to a non-local host: ${host}. ` +
-          `Sovereign Sentinel does not send telemetry off the machine.`,
+          `RACS Intelligence does not send telemetry off the machine.`,
       );
     }
   }

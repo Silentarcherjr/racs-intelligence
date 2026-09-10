@@ -1,5 +1,5 @@
 <!--
-  Wazuh decoder for Sovereign Sentinel alerts.
+  Wazuh decoder for RACS Intelligence alerts.
 
   Install to /var/ossec/etc/decoders/ on the Wazuh manager, then point a
   logcollector at the alerts file the agent writes:
@@ -12,11 +12,11 @@
   Wazuh decodes JSON natively, so this only tags the source; the rules in
   local_rules.xml do the severity work.
 -->
-<decoder name="sovereign-sentinel">
-  <program_name>^sovereign-sentinel$</program_name>
+<decoder name="racs-intelligence">
+  <program_name>^racs-intelligence$</program_name>
 </decoder>
 
-<decoder name="sovereign-sentinel-json">
-  <parent>sovereign-sentinel</parent>
+<decoder name="racs-intelligence-json">
+  <parent>racs-intelligence</parent>
   <plugin_decoder>JSON_Decoder</plugin_decoder>
 </decoder>

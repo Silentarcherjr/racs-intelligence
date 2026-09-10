@@ -1,15 +1,15 @@
 <!--
-  Wazuh rules for Sovereign Sentinel. Install to /var/ossec/etc/rules/.
+  Wazuh rules for RACS Intelligence. Install to /var/ossec/etc/rules/.
 
   Levels stop at 12 on purpose. In Wazuh, 13+ reads as a confirmed compromise,
   and what Sentinel emits is a prioritised suspicion backed by evidence — never
   proof (spec §35). Overstating severity is how a SOC learns to ignore a feed.
 -->
-<group name="sovereign_sentinel,dns,">
+<group name="racs_intelligence,dns,">
 
   <rule id="100200" level="0">
-    <field name="integration">sovereign-sentinel</field>
-    <description>Sovereign Sentinel: DNS incident received</description>
+    <field name="integration">racs-intelligence</field>
+    <description>RACS Intelligence: DNS incident received</description>
   </rule>
 
   <rule id="100201" level="5">

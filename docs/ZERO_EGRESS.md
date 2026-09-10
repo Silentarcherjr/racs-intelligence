@@ -2,7 +2,7 @@
 
 ## The claim, stated precisely
 
-> Sovereign Sentinel performs **zero cloud AI inference**. DNS queries, derived
+> RACS Intelligence performs **zero cloud AI inference**. DNS queries, derived
 > indicators, prompts, model inputs and screenshots never leave the machine.
 
 **It is not air-gapped, and we do not claim it is.** The host has a working

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sovereign Sentinel demo. Runs on macOS, Linux and Windows.
+ * RACS Intelligence demo. Runs on macOS, Linux and Windows.
  *
  *   npm run demo              full pipeline on the committed fixture
  *   npm run demo -- dga       one scenario at a time
@@ -89,7 +89,7 @@ process.on("SIGINT", () => cleanup().then(() => process.exit(0)));
 process.on("SIGTERM", () => cleanup().then(() => process.exit(0)));
 
 console.log(`
-  SOVEREIGN SENTINEL
+  RACS INTELLIGENCE
   Local-first DNS security for regulated infrastructure
 
   scenario     ${scenario}

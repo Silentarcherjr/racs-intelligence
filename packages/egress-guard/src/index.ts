@@ -3,7 +3,7 @@ export { quietKafkaTimeoutWarning } from "./quiet.js";
 /**
  * Egress guard — makes zero-egress enforced, not just claimed.
  *
- * Sovereign Sentinel's entire argument is that DNS telemetry, derived
+ * RACS Intelligence's entire argument is that DNS telemetry, derived
  * indicators, prompts and screenshots never leave the machine. A README saying
  * so is a promise; this is a mechanism. Every outbound TCP connection the
  * process attempts is checked, and anything that is not loopback or RFC 1918
@@ -106,7 +106,7 @@ export function installEgressGuard(opts: GuardOptions = {}): void {
     if (!allowed) {
       const msg =
         `[egress-guard] BLOCKED outbound connection to ${host}:${port}.\n` +
-        `  Sovereign Sentinel does not send data off the machine. If this is a\n` +
+        `  RACS Intelligence does not send data off the machine. If this is a\n` +
         `  legitimate local service, add its address range to isLocalHost().`;
       if (opts.auditOnly) {
         console.error(msg);

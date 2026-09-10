@@ -12,7 +12,7 @@ import { ROOT, bad, clickhouseQuery, loadEnv, modelPath, ok, portOpen, warn } fr
 loadEnv();
 let missing = 0;
 
-console.log("\nSovereign Sentinel — bootstrap");
+console.log("\nRACS Intelligence — bootstrap");
 console.log("══════════════════════════════\n");
 
 console.log("Toolchain");

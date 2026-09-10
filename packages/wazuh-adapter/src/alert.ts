@@ -13,7 +13,7 @@
 import type { Incident } from "@sentinel/dns-schema";
 
 export type WazuhAlert = {
-  integration: "sovereign-sentinel";
+  integration: "racs-intelligence";
   timestamp: string;
   sentinel: {
     incident_id: string;
@@ -55,7 +55,7 @@ export function riskToWazuhLevel(risk: number): number {
 
 export function toWazuhAlert(incident: Incident): WazuhAlert {
   return {
-    integration: "sovereign-sentinel",
+    integration: "racs-intelligence",
     timestamp: incident.updatedAt,
     sentinel: {
       incident_id: incident.id,
