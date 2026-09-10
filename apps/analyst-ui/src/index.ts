@@ -138,16 +138,23 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       res.end(JSON.stringify(rows));
     }
     else {
-      // Serve static HTML
-      const htmlPath = join(HTML_DIR, path === "/" ? "index.html" : path);
-      try {
-        const html = readFileSync(htmlPath, "utf-8");
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(html);
-      } catch {
+      // Only named dashboard assets are public. Evidence has its own guarded route.
+      const assets: Record<string, { file: string; type: string }> = {
+        "/": { file: "index.html", type: "text/html; charset=utf-8" },
+        "/index.html": { file: "index.html", type: "text/html; charset=utf-8" },
+        "/dashboard.css": { file: "dashboard.css", type: "text/css; charset=utf-8" },
+        "/dashboard.js": { file: "dashboard.js", type: "text/javascript; charset=utf-8" },
+        "/racs-logo.jpeg": { file: "racs-logo.jpeg", type: "image/jpeg" },
+      };
+      const asset = assets[path];
+      if (req.method !== "GET" || !asset) {
         res.statusCode = 404;
         res.end(JSON.stringify({ error: "Not found" }));
+        return;
       }
+      res.setHeader("Content-Type", asset.type);
+      res.setHeader("Cache-Control", "no-store");
+      res.end(readFileSync(join(HTML_DIR, asset.file)));
     }
   } catch (err) {
     res.statusCode = 500;
