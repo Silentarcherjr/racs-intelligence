@@ -14,8 +14,8 @@
   "refresh": "10s",
   "editable": true,
   "time": {
-    "from": "2026-09-09T11:00:00.000Z",
-    "to": "2026-09-09T13:00:00.000Z"
+    "from": "now-24h",
+    "to": "now"
   },
   "panels": [
     {

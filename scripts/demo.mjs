@@ -5,6 +5,8 @@
  *   npm run demo              full pipeline on the committed fixture
  *   npm run demo -- dga       one scenario at a time
  *   npm run demo -- live      open-ended generated stream
+ *   npm run demo -- typosquat --keep-alive
+ *                             keeps local services and model status running
  *   npm run demo -- typosquat --wait
  *                             brings the stack up, then waits for Enter before
  *                             producing anything — so a recording can start on
@@ -30,6 +32,8 @@ const SCENARIOS = ["full", "normal", "dga", "typosquat", "tunneling", "beaconing
 const scenario = (process.argv[2] ?? "full").replace(/^--.*/, "full");
 /** Hold at the starting line until a person says go. */
 const waitForGo = process.argv.includes("--wait");
+// Keep the local analyst and model status available after the stream finishes.
+const keepAlive = process.argv.includes("--keep-alive");
 if (!SCENARIOS.includes(scenario)) {
   console.error(`unknown scenario "${scenario}"\ntry: ${SCENARIOS.join(" · ")}`);
   process.exit(1);
@@ -106,7 +110,8 @@ await admin.connect();
 await admin.createTopics({ topics: [{ topic, numPartitions: 3 }], waitForLeaders: true });
 await admin.disconnect();
 
-rmSync(join(ROOT, "out"), { recursive: true, force: true });
+// Keep screenshots referenced by incidents already stored in ClickHouse.
+rmSync(join(ROOT, "out/sentinel-alerts.json"), { force: true });
 start("packages/wazuh-adapter/dist/receiver.js", [], { quiet: true });
 
 if (investigate) {
@@ -159,5 +164,9 @@ await new Promise((res) => {
 // finish after the producer stops, otherwise the demo exits with VisionPsy
 // still queued and the UI truthfully reports zero completed vision calls.
 await sleep(investigate && explain ? 150000 : investigate ? 75000 : explain ? 45000 : 8000);
+if (keepAlive) {
+  console.log("Demo stream complete. Local services remain active; press Ctrl-C to stop.");
+  await new Promise(() => {});
+}
 await cleanup();
 process.exit(0);
