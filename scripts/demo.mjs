@@ -5,6 +5,10 @@
  *   npm run demo              full pipeline on the committed fixture
  *   npm run demo -- dga       one scenario at a time
  *   npm run demo -- live      open-ended generated stream
+ *   npm run demo -- typosquat --wait
+ *                             brings the stack up, then waits for Enter before
+ *                             producing anything — so a recording can start on
+ *                             the first event instead of on Kafka's boot logs
  *
  * Scenarios: full · normal · dga · typosquat · tunneling · beaconing · qoe · live
  *
@@ -14,6 +18,7 @@
  * leak into this one.
  */
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline/promises";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Kafka, logLevel } from "kafkajs";
@@ -22,7 +27,9 @@ import { ROOT, clickhouseQuery, loadEnv, modelPath, portOpen, sleep } from "./li
 loadEnv();
 
 const SCENARIOS = ["full", "normal", "dga", "typosquat", "tunneling", "beaconing", "qoe", "live"];
-const scenario = process.argv[2] ?? "full";
+const scenario = (process.argv[2] ?? "full").replace(/^--.*/, "full");
+/** Hold at the starting line until a person says go. */
+const waitForGo = process.argv.includes("--wait");
 if (!SCENARIOS.includes(scenario)) {
   console.error(`unknown scenario "${scenario}"\ntry: ${SCENARIOS.join(" · ")}`);
   process.exit(1);
@@ -119,6 +126,19 @@ start("apps/sentinel-agent/dist/index.js", [
   ...(investigate ? ["--investigate"] : []),
 ]);
 await sleep(3000);
+
+if (waitForGo) {
+  // Everything is up and connected; nothing has been produced yet. On camera
+  // this is the difference between opening on a live incident and opening on
+  // a broker's startup noise.
+  console.log("\n  ─────────────────────────────────────────────────────────");
+  console.log("  Stack is up and the agent is consuming. No events yet.");
+  console.log("  Press Enter to start the stream.");
+  console.log("  ─────────────────────────────────────────────────────────\n");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  await rl.question("");
+  rl.close();
+}
 
 const producerArgs =
   scenario === "full"  ? ["--source", "fixture", "--speed", "200"] :

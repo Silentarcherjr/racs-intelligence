@@ -149,6 +149,7 @@ Copy `.env.example` to `.env` to change any endpoint.
 npm run demo                    # full pipeline on the committed fixture
 npm run demo -- dga             # one scenario at a time
 npm run demo -- live            # open-ended generated stream
+npm run demo -- typosquat --wait   # bring the stack up, then wait for Enter
 npm test                        # 21 regression tests
 ```
 
