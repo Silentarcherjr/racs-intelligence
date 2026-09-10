@@ -80,7 +80,7 @@ function weightPaths(): { model: string; mmproj: string } {
     throw new Error(
       `[vision] QVAC_VISION_MODELS_DIR is not set.\n` +
         `  Visual analysis needs ${MODEL_FILE} and ${MMPROJ_FILE} on disk.\n` +
-        `  Sovereign Sentinel never downloads model weights — see docs/ZERO_EGRESS.md.`,
+        `  RACS Intelligence never downloads model weights — see docs/ZERO_EGRESS.md.`,
     );
   }
   const model = join(dir, MODEL_FILE);

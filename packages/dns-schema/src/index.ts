@@ -1,5 +1,5 @@
 /**
- * Shared data contracts for Sovereign Sentinel.
+ * Shared data contracts for RACS Intelligence.
  *
  * This package is the boundary between all four lanes. Everything crossing a
  * module boundary is typed here, so nobody invents a second shape for the same

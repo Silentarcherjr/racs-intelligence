@@ -4,7 +4,7 @@ Owner: LowCrime (Dev 4). Agent: Codex. Branch: feature/ui. Status: DONE.
 
 ## Result
 
-Modernized the working analyst UI at http://127.0.0.1:3001 into a full-window dashboard inspired by the supplied reference and the original Racs Intelligence logo. Dark navy surfaces, cyan brand accents, responsive sidebar, real incident and QoE metrics, risk visualization, detection breakdown, incident search and risk filters, local JSON export, SOC/NOC correlation, runtime counters and accessible native incident dialogs.
+Modernized the working analyst UI at http://127.0.0.1:3001 into a full-window dashboard inspired by the supplied reference and the original RACS Intelligence logo. Dark navy surfaces, cyan brand accents, responsive sidebar, real incident and QoE metrics, risk visualization, detection breakdown, incident search and risk filters, local JSON export, SOC/NOC correlation, runtime counters and accessible native incident dialogs.
 
 Evidence remains visible: DNS weights, source hosts, recommended actions, local screenshots and VisionPsy descriptions. Text analysis remains behind the existing QVAC endpoint and requires a running agent reporting the text model available. All assets are local; no fonts, scripts, inference or telemetry services were added outside the machine. Static assets are served through an explicit allowlist with correct MIME types.
 
@@ -29,7 +29,7 @@ Artifacts: node_modules/.cache/sentinel/ui-desktop.png, ui-mobile.png, ui-eviden
 
 ## Develop locally
 
-From C:\Users\Cbast\sovereign-sentinel:
+From C:\Users\Cbast\racs-intelligence:
 
 ```powershell
 # When restarting the machine: open Docker Desktop first.

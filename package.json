@@ -1,5 +1,5 @@
 {
-  "name": "sovereign-sentinel",
+  "name": "racs-intelligence",
   "private": true,
   "version": "0.1.0",
   "description": "Zero-egress local AI security analyst for DNS telemetry",

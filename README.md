@@ -1,4 +1,4 @@
-# Sovereign Sentinel
+# RACS Intelligence
 
 > **A zero-egress AI analyst that detects, investigates, correlates and explains
 > DNS security incidents entirely inside regulated infrastructure.**
@@ -9,7 +9,7 @@ Decentralized AI Hackathon — Panamá 2026
 
 ## 1. Project description
 
-Sovereign Sentinel is a local-first AI security analyst for DNS telemetry. It consumes a
+RACS Intelligence is a local-first AI security analyst for DNS telemetry. It consumes a
 live event stream, scores four classes of threat with deterministic engines, calculates
 DNS quality of experience per site, and asks a **locally-run** language model to explain
 the evidence — without sending a single DNS query, derived indicator, prompt or model
@@ -124,8 +124,8 @@ Apple M1 Max, 32 GB unified memory, macOS 15. Inference on the GPU via Metal.
 ## 9. Setup
 
 ```bash
-git clone https://github.com/Silentarcherjr/sovereign-sentinel.git
-cd sovereign-sentinel
+git clone https://github.com/Silentarcherjr/racs-intelligence.git
+cd racs-intelligence
 npm install && npm run build
 
 cp .env.example .env          # endpoints and ClickHouse credentials
@@ -182,7 +182,7 @@ model is not loaded.
 | | | |
 |---|---|---|
 | **Analyst UI** | <http://127.0.0.1:3001> | Incidents with full evidence, QoE per site, the SOC/NOC verdict, and an *Explain with QVAC* button. Refreshes every 4 s and pauses while a detail view is open. |
-| **Grafana** | <http://127.0.0.1:3000> | Ten panels, auto-refreshing every 10 s. Dashboard: *Sovereign Sentinel — DNS Security & QoE*. |
+| **Grafana** | <http://127.0.0.1:3000> | Ten panels, auto-refreshing every 10 s. Dashboard: *RACS Intelligence — DNS Security & QoE*. |
 
 Start the UI with `npm start -w @sentinel/analyst-ui`. For a live view rather
 than a replay, run `npm run demo -- live` and watch either surface update as

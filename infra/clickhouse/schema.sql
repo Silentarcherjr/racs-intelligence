@@ -1,4 +1,4 @@
--- Sovereign Sentinel — ClickHouse schema (spec §7 MVP-6).
+-- RACS Intelligence — ClickHouse schema (spec §7 MVP-6).
 --
 -- Apply with:
 --   curl --data-binary @infra/clickhouse/schema.sql http://127.0.0.1:8123/
