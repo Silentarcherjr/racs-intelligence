@@ -13,6 +13,7 @@ import { explainIncident } from "@sentinel/qvac-runtime";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HTML_DIR = join(__dirname, "..", "html");
+const EVIDENCE_DIR = join(__dirname, "../../..", "out", "evidence");
 
 const HOST = "127.0.0.1";
 // 3000 belongs to Grafana in docker-compose.yml — do not reuse it.
@@ -26,7 +27,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   // hand out arbitrary files because a path had ".." in it.
   if (url.pathname.startsWith("/evidence/")) {
     const name = basename(decodeURIComponent(url.pathname.slice("/evidence/".length)));
-    const file = join(process.cwd(), "out", "evidence", name);
+    const file = join(EVIDENCE_DIR, name);
     if (/^[\w.-]+\.png$/.test(name) && existsSync(file)) {
       res.writeHead(200, { "content-type": "image/png", "cache-control": "no-store" });
       createReadStream(file).pipe(res);
