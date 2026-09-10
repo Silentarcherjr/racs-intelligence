@@ -382,6 +382,29 @@ Next:       (the single most useful next action for whoever picks this up)
 
 ---
 
+### 2026-09-10 — LowCrime, reviewed and merged by Claude — dashboard rewrite (PR #22)
+Did:        Rewrote `apps/analyst-ui` as a full dashboard: sidebar navigation, metrics,
+            risk charts, searchable and filterable incidents, local JSON export, and a
+            repeatable browser check (`apps/analyst-ui/verify-ui.mjs`). The runtime panel,
+            investigator decisions and screenshot evidence all survived the rewrite.
+            Branch was up to date with `main` — second in a row, no conflicts.
+            **Closed a traversal hole that was mine.** The old static handler did
+            `join(HTML_DIR, path)` on the raw request path; it is now a named-asset
+            allowlist. Verified: `/..%2F..%2Fpackage.json` and the same under `/evidence/`
+            both 404, while real screenshots still serve 200.
+            Verified on macOS before merge: build clean, 21/21 tests, every route 200.
+            Author verified on Windows at 1536x1080 and 390x844 with real records.
+Did not:    Nothing outstanding from this PR.
+Broken:     Nothing. **Open question for the team, not a defect:** the page now carries
+            "Racs Intelligence" branding (title, sidebar, logo). Fine if that is the team's
+            own name. If it belongs to a third party it must come out before submission —
+            a jury reads someone else's branding on the product as impersonation, and the
+            README declares no such affiliation. The product name is untouched:
+            `Sovereign Sentinel` everywhere it matters.
+Contracts:  UI assets are an explicit allowlist in `apps/analyst-ui/src/index.ts`. Adding
+            a new asset means adding it there — a new file will 404 until you do.
+Next:       **The video.** Still the only Must Have outstanding.
+
 ### 2026-09-09 — Ralu13 (Codex), reviewed and merged by Claude — Windows verified (PR #21)
 Did:        **The first genuine end-to-end Windows run**, and the first branch on this
             project that was up to date with `main` before opening a PR — which is why it
