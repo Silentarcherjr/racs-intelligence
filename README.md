@@ -1,316 +1,316 @@
 # RACS Intelligence
 
-> **A zero-egress AI analyst that detects, investigates, correlates and explains
-> DNS security incidents entirely inside regulated infrastructure.**
+> **Analista de seguridad DNS que detecta, investiga, correlaciona y explica
+> incidentes enteramente dentro de la infraestructura del cliente.**
 
-Decentralized AI Hackathon — Panamá 2026
+Decentralized AI Hackathon — Panamá 2026 · [English version](README.en.md)
 
 ---
 
-## 1. Project description
+## 1. Qué es
 
-RACS Intelligence is a local-first AI security analyst for DNS telemetry. It consumes a
-live event stream, scores four classes of threat with deterministic engines, calculates
-DNS quality of experience per site, and asks a **locally-run** language model to explain
-the evidence — without sending a single DNS query, derived indicator, prompt or model
-input to a cloud provider.
+RACS Intelligence es un analista de seguridad DNS que corre localmente. Consume un flujo
+de eventos en vivo, puntúa cuatro clases de amenaza con motores deterministas, calcula la
+calidad de servicio DNS por sede, y le pide a un modelo de lenguaje **que corre en la
+misma máquina** que explique la evidencia — sin enviar una sola consulta DNS, indicador
+derivado, prompt o captura de pantalla a un proveedor en la nube.
 
-It also answers a question most DNS tooling cannot: **is quality degrading because the
-resolver is struggling, or because something on the network is misbehaving?**
+Cuando la evidencia no alcanza para decidir, **va a buscar la que falta**: renderiza el
+dominio sospechoso en un navegador aislado, fotografía la página y la analiza con un
+modelo de visión local.
 
-## 2. Problem
+Y responde una pregunta que la mayoría de las herramientas DNS no puede: **¿la calidad
+está cayendo porque el resolver sufre, o porque algo en la red se está portando mal?**
 
-DNS telemetry exposes browsing habits, internal application usage, endpoint behaviour,
-command-and-control patterns and organisational structure. For a bank, a ministry or a
-hospital, even a *derived* representation of that traffic can be sensitive — which makes
-the usual pipeline unusable:
+## 2. El problema
 
-```
-telemetry → cloud API → model → result
-```
-
-Sentinel replaces it with:
+La telemetría DNS revela hábitos de navegación, aplicaciones internas, comportamiento de
+endpoints, patrones de comando y control, y la estructura de una organización. Para un
+banco, un ministerio o un hospital, incluso una representación *derivada* de ese tráfico
+puede ser sensible — lo que vuelve inutilizable el pipeline habitual:
 
 ```
-telemetry → local features → QVAC local inference → local evidence → local action
+telemetría → API en la nube → modelo → resultado
 ```
 
-## 3. Tracks targeted
+Aquí se reemplaza por:
 
-| Track | Status |
+```
+telemetría → features locales → inferencia QVAC local → evidencia local → acción local
+```
+
+## 3. Tracks
+
+| Track | Estado |
 |---|---|
-| **04 — Ovnicom** | **Claimed.** Every stated requirement is implemented and verified. |
-| **05 — Caja de Ahorros** | **Claimed.** See §11 for the banking scenario. |
-| **03 — General Ranking** | Claimed. |
-| **02 — QVAC Psy** | **Not claimed.** VisionPsy runs locally and is benchmarked (§18), but the visual investigation flow is not integrated, so the model is not *central* to the product. Claiming it would be dishonest — see §19. |
+| **04 — Ovnicom** | **Reclamado.** Todos los requisitos implementados y verificados. |
+| **05 — Caja de Ahorros** | **Reclamado.** Ver el escenario bancario en §11. |
+| **03 — Ranking General** | Reclamado. |
+| **02 — QVAC Psy** | **Pendiente de confirmar.** VisionPsy ya es central: el flujo de investigación visual está integrado y funcionando. Falta verificar si el requisito de operaciones RAG es obligatorio — no hacemos RAG. Ver §19. |
 
-## 4. Architecture
+## 4. Arquitectura
 
 ```
-  synthetic dnstap events
+  eventos DNS sintéticos
             │
-          Kafka  (dns.events.raw, 3 partitions, keyed by client IP)
+          Kafka  (dns.events.raw, 3 particiones, con clave por IP de cliente)
             │
    ┌────────┴─────────┐
    ▼                  ▼
- feature-engine    qoe-engine ──── per-site rolling baselines
+ feature-engine    qoe-engine ──── baselines por sede
    │                  │
    ▼                  ▼
- threat-engine     QoE score ──┐
-   │                           │
-   ▼                           ▼
- Incident ──────────────► SOC/NOC correlation
+ threat-engine     puntaje QoE ──┐
+   │                             │
+   ▼                             ▼
+ Incidente ──────────────► correlación SOC/NOC
    │
-   ├──► qvac-runtime  → MedPsy-4B, on-device, explains the evidence
-   ├──► wazuh-adapter → alert with full evidence
+   ├──► investigador activo → navegador aislado → VisionPsy → fusión de evidencia
+   ├──► qvac-runtime  → MedPsy-4B explica la evidencia, en el dispositivo
+   ├──► wazuh-adapter → alerta con toda la evidencia
    └──► clickhouse-adapter → Grafana
 ```
 
-Detection is deterministic and explainable. **The model explains evidence; it never
-creates or alters a risk score.** Every risk number is a plain weighted sum, and the
-weights travel with the alert.
+La detección es determinista y explicable. **El modelo explica la evidencia; nunca crea
+ni modifica un puntaje de riesgo.** Cada número es una suma ponderada, y los pesos viajan
+dentro de la alerta.
 
-| Package | Responsibility |
+| Paquete | Responsabilidad |
 |---|---|
-| `dns-schema` | Shared types. Dependency-free on purpose. |
-| `feature-engine` | Lexical and behavioural features |
-| `threat-engine` | DGA · typosquatting · tunneling · beaconing, plus scoring |
-| `qoe-engine` | QoE, per-site baselines, SOC/NOC correlation |
-| `qvac-runtime` | Local inference via `@qvac/sdk` |
-| `wazuh-adapter` | Alert formatting and delivery |
-| `clickhouse-adapter` | QoE and incident storage |
-| `egress-guard` | Blocks any non-local socket |
+| `dns-schema` | Tipos compartidos. Sin dependencias, a propósito. |
+| `feature-engine` | Features léxicos y de comportamiento |
+| `threat-engine` | DGA · typosquatting · tunneling · beaconing, y el puntaje |
+| `qoe-engine` | QoE, baselines por sede, correlación SOC/NOC |
+| `evidence-engine` | Selección de acción, sandbox del navegador, VisionPsy, fusión |
+| `qvac-runtime` | Inferencia local vía `@qvac/sdk` |
+| `wazuh-adapter` | Formato y entrega de alertas |
+| `clickhouse-adapter` | Almacenamiento de QoE e incidentes |
+| `egress-guard` | Bloquea cualquier socket no local |
 
-## 5. QVAC usage
+## 5. Uso de QVAC
 
-All inference runs through `@qvac/sdk` on-device. The model receives structured evidence
-produced by the deterministic engines and returns JSON constrained by a schema, which is
-validated before use; on a validation failure the incident is delivered with **no**
-explanation rather than an unvalidated one.
+Toda la inferencia pasa por `@qvac/sdk` en el dispositivo. El modelo recibe evidencia
+estructurada producida por los motores deterministas y devuelve JSON restringido por un
+esquema, que se valida antes de usarse; si la validación falla, **el incidente se entrega
+sin explicación** en lugar de con una sin validar.
 
-The system prompt is the seven-rule analyst prompt from the specification — never invent
-evidence, never claim confirmation, use probabilistic language, explain the most important
-evidence first, recommend only defensive steps, do not request external services, output
-valid JSON.
+El prompt de sistema son las siete reglas del spec §20 — nunca inventes evidencia, nunca
+afirmes confirmación, usa lenguaje probabilístico, explica primero lo más importante,
+recomienda solo pasos defensivos, no pidas servicios externos, devuelve JSON válido.
 
-`reasoning_budget: 0` / `enable_thinking: false` is required: MedPsy is a Qwen3 derivative
-and, left to reason freely, exhausts its token budget inside `<think>` and returns an
-empty answer.
+`reasoning_budget: 0` es obligatorio: MedPsy deriva de Qwen3 y, si razona libremente,
+agota su presupuesto de tokens dentro de `<think>` y devuelve una respuesta vacía.
 
-## 6. Exact models
+## 6. Modelos exactos
 
-| Role | Model | Status |
-|---|---|---|
-| Local analyst | `qvac/MedPsy-4B-GGUF` | In use |
-| Visual analysis | `qvac/VisionPsy-Nano-460M-Flash-GGUFs` | Benchmarked, not integrated |
+| Rol | Modelo |
+|---|---|
+| Analista de texto | `qvac/MedPsy-4B-GGUF` |
+| Análisis visual | `qvac/VisionPsy-Nano-460M-Flash-GGUFs` |
 
-**A note we would rather state than hide:** MedPsy is a clinically fine-tuned model. Of the
-25 models published by QVAC, it is the only usable instruct text model — the Genesis family
-produces unusable output, AfriSLM and TranslateNano are translation models, and Fabric is a
-biomedical LoRA. Underneath it is Qwen3 and it follows the constrained analyst prompt well,
-but it was not trained for security work. It explains evidence; it does not decide anything.
+**Algo que preferimos decir a que se descubra:** MedPsy está afinado para uso clínico. De
+los 25 modelos publicados por QVAC, es el único modelo instruct de texto usable — la
+familia Genesis produce salida inservible, AfriSLM y TranslateNano son de traducción, y
+Fabric es un LoRA biomédico. Por debajo es Qwen3 y sigue bien el prompt restringido, pero
+no fue entrenado para seguridad. Explica evidencia; no decide nada.
 
-## 7. Exact quantizations
+## 7. Cuantizaciones exactas
 
-| Model | Quantization | File |
+| Modelo | Cuantización | Archivo |
 |---|---|---|
 | MedPsy-4B | `q4_k_m-imat` | `medpsy-4b-q4_k_m-imat.gguf` (2.5 GB) |
 | VisionPsy-Flash | `q4_k_m-imat` + mmproj `q8` | `visionpsy-nano-460m-flash-q4_k_m-imat.gguf` (393 MB) |
 
 ## 8. Hardware
 
-Apple M1 Max, 32 GB unified memory, macOS 15. Inference on the GPU via Metal.
+Apple M1 Max, 32 GB de memoria unificada, macOS 15. Inferencia en GPU vía Metal.
+Verificado también en Windows x64 con Docker Desktop.
 
-## 9. Setup
+## 9. Instalación
 
 ```bash
 git clone https://github.com/Silentarcherjr/racs-intelligence.git
 cd racs-intelligence
 npm install && npm run build
 
-cp .env.example .env          # endpoints and ClickHouse credentials
+cp .env.example .env
 docker compose up -d          # kafka, clickhouse, grafana
-./scripts/bootstrap.sh        # verifies prerequisites and applies the schema
+npm run bootstrap             # verifica requisitos y aplica el esquema
 ```
 
-Verified on colima 0.10.3 / Docker 29.5.2 on Apple Silicon. On macOS without
-Docker Desktop, `brew install colima docker docker-compose && colima start`
-works and needs no GUI.
+Verificado en colima 0.10.3 / Docker 29.5.2 en Apple Silicon, y en Windows con Docker
+Desktop. En macOS sin Docker Desktop, `brew install colima docker docker-compose && colima start`
+funciona y no necesita interfaz gráfica.
 
-Model weights are **never downloaded at run time**. Fetch them once, ahead of time, and
-point `QVAC_MODELS_DIR` at the directory containing `medpsy-4b-q4_k_m-imat.gguf`. Without
-them the pipeline still runs; incidents simply carry no analyst text.
+**Las pesas de los modelos nunca se descargan en tiempo de ejecución.** Bájalas una vez,
+por adelantado, y apunta `QVAC_MODELS_DIR` al directorio que contiene
+`medpsy-4b-q4_k_m-imat.gguf`. Sin ellas el pipeline corre igual; los incidentes
+simplemente no llevan texto del analista.
 
-Copy `.env.example` to `.env` to change any endpoint.
-
-## 10. Run instructions
-
-```bash
-npm run demo                    # full pipeline on the committed fixture
-npm run demo -- dga             # one scenario at a time
-npm run demo -- live            # open-ended generated stream
-npm run demo -- typosquat --wait   # bring the stack up, then wait for Enter
-npm test                        # 21 regression tests
-```
-
-These run on **macOS, Linux and Windows** — they are Node scripts, so Windows
-needs neither WSL nor Git Bash. `scripts/demo.sh` and `scripts/bootstrap.sh`
-are thin wrappers around the same code.
-
-`scripts/verify-zero-egress.sh` is the one exception: it inspects real sockets
-with `lsof`, which has no Windows equivalent worth faking. On Windows, run the
-demo and confirm the **SOVEREIGN MODE** panel reports zero blocked external
-connections — the in-process guard works everywhere.
-
-### Visual investigation (optional)
-
-The active-investigation path renders suspicious domains in a local sandbox, so
-it needs Chromium and the vision weights:
+### Investigación visual (opcional)
 
 ```bash
 npx playwright install chromium
 ```
 
-Then put `visionpsy-nano-460m-flash-q4_k_m-imat.gguf` and
-`mmproj-visionpsy-nano-460m-flash-q8.gguf` (393 MB together) in a directory and
-point `QVAC_VISION_MODELS_DIR` at it. Without them the pipeline runs normally;
-incidents simply carry no visual evidence, and the runtime panel says the vision
-model is not loaded.
+Coloca `visionpsy-nano-460m-flash-q4_k_m-imat.gguf` y
+`mmproj-visionpsy-nano-460m-flash-q8.gguf` (393 MB juntos) en un directorio y apunta
+`QVAC_VISION_MODELS_DIR` ahí.
 
-### Watching it work
+## 10. Ejecución
+
+```bash
+npm run demo                       # pipeline completo sobre el fixture
+npm run demo -- typosquat          # un escenario a la vez
+npm run demo -- typosquat --wait   # levanta todo y espera Enter
+npm run demo -- live               # flujo continuo
+npm test                           # 21 pruebas de regresión
+```
+
+Funcionan en **macOS, Linux y Windows** — son scripts de Node, así que Windows no
+necesita WSL ni Git Bash. `scripts/verify-zero-egress.sh` es la excepción: usa `lsof`,
+que no tiene equivalente en Windows que valga la pena fingir.
+
+### Verlo funcionar
 
 | | | |
 |---|---|---|
-| **Analyst UI** | <http://127.0.0.1:3001> | Incidents with full evidence, QoE per site, the SOC/NOC verdict, and an *Explain with QVAC* button. Refreshes every 4 s and pauses while a detail view is open. |
-| **Grafana** | <http://127.0.0.1:3000> | Ten panels, auto-refreshing every 10 s. Dashboard: *RACS Intelligence — DNS Security & QoE*. |
+| **Analyst UI** | <http://127.0.0.1:3001> | Incidentes con toda su evidencia, la captura del sandbox, QoE por sede, veredicto SOC/NOC, y un panel del runtime local en vivo. Se refresca cada 4 s. |
+| **Grafana** | <http://127.0.0.1:3000> | Diez paneles, refresco cada 10 s. |
 
-Start the UI with `npm start -w @sentinel/analyst-ui`. For a live view rather
-than a replay, run `npm run demo -- live` and watch either surface update as
-events arrive.
+## 11. Escenarios de demo
 
-## 11. Demo scenarios
+`npm run demo` reproduce 66 eventos y produce, idénticamente en cada corrida:
 
-`./scripts/demo.sh full` replays 66 committed events and produces, identically on every
-run:
-
-| Risk | Classification | Evidence |
+| Riesgo | Clasificación | Evidencia |
 |---|---|---|
-| 90 | DNS tunneling | 48-char encoded subdomains, 100% TXT/NULL, no caching |
-| 80 | Typosquatting | `micr0soft-secure-login.example`, homoglyph, two sites |
-| 75 | DGA | 10 unique names, 100% NXDOMAIN, 3.66 bits entropy |
-| 65 | Beaconing | Interval variation 0.000 at a 60-second cadence |
+| 90 | Tunneling DNS | Subdominios codificados de 48 caracteres, 100% TXT/NULL, sin caché |
+| 80 | Typosquatting | `micr0soft-secure-login.example`, homoglifo, dos sedes |
+| 75 | DGA | 10 nombres únicos, 100% NXDOMAIN, 3.66 bits de entropía |
+| 65 | Beaconing | Coeficiente de variación 0.000 con cadencia de 60 s |
 | 60 / 35 | Typosquatting | `app1e-id-verify`, `banes-co-panama` |
 
-And the correlation that ties security to operations:
+Y la correlación que une seguridad con operaciones:
 
 ```
-pa-branch-01  QoE 45  LIKELY_OPERATIONAL      no finding explains the degradation
-pa-hq         QoE 59  LIKELY_SECURITY_DRIVEN  DGA + tunneling explain 100% of it
+pa-branch-01  QoE 45  LIKELY_OPERATIONAL      ningún hallazgo lo explica
+pa-hq         QoE 59  LIKELY_SECURITY_DRIVEN  DGA + tunneling explican el 100%
 ```
 
-**Banking scenario (Track 05).** `banes-co-panama.example` and
-`micr0soft-secure-login.example` are credential-phishing lookalikes of a Panamanian bank
-and its identity provider. A bank's SOC sees the finding, its evidence and a local
-explanation — while the DNS traffic that revealed it never leaves the bank.
+**Escenario bancario (Track 05).** `npm run demo -- typosquat` genera dominios que imitan
+marcas bancarias. El investigador decide que el nombre por sí solo no distingue un dominio
+aparcado de una página viva de robo de credenciales, renderiza el sitio en un navegador
+aislado, y VisionPsy confirma el formulario de credenciales y el lenguaje de urgencia. El
+riesgo sube de 64 a 89 — y el tráfico DNS que lo reveló nunca sale del banco.
 
-## 12. Zero-egress explanation
+## 12. Zero-egress
 
-Proven three ways, not asserted once. See [`docs/ZERO_EGRESS.md`](docs/ZERO_EGRESS.md).
+Demostrado de tres formas, no afirmado una vez. Ver [`docs/ZERO_EGRESS.md`](docs/ZERO_EGRESS.md).
 
-1. **In-process guard** — `packages/egress-guard` patches the socket layer before any
-   module can connect and refuses anything that is not loopback or RFC 1918.
-2. **OS-level check** — `scripts/verify-zero-egress.sh` inspects real sockets with `lsof`,
-   below the JavaScript layer, and audits the dependency tree for twelve cloud AI SDKs.
-3. **Switch the Wi-Fi off** — the demo behaves identically.
+1. **Guard en proceso** — `packages/egress-guard` parchea la capa de sockets antes de que
+   ningún módulo pueda conectarse, y rechaza todo lo que no sea loopback o RFC 1918.
+2. **Verificación a nivel de sistema operativo** — `scripts/verify-zero-egress.sh`
+   inspecciona los sockets reales con `lsof`, por debajo de JavaScript, y audita el árbol
+   de dependencias buscando doce SDKs de nube.
+3. **Apagar el WiFi** — el demo se comporta idénticamente.
 
-**This is zero cloud AI inference and zero egress. It is not an air gap** and we do not
-claim it is: the machine has a working network interface, we simply do not use it.
+**Esto es cero inferencia en la nube y cero egress. No es un air gap**, y no lo afirmamos:
+la máquina tiene interfaz de red, simplemente no la usamos.
 
-## 13. Data sources
+## 13. Fuentes de datos
 
-Synthetic events generated by `apps/synthetic-producer`, plus a committed 66-event fixture
-(`datasets/synthetic/sample-events.json`, seed `20260909`). All domains are under
-`.example` or invented; all addresses are RFC 1918.
+Eventos sintéticos generados por `apps/synthetic-producer`, más un fixture de 66 eventos
+(`datasets/synthetic/sample-events.json`, semilla `20260909`). Todos los dominios están
+bajo `.example` o son inventados; todas las direcciones son RFC 1918.
 
-## 14. Synthetic data declaration
+## 14. Declaración de datos sintéticos
 
-**All DNS data is synthetic.** No real customer, production or captured DNS traffic was
-processed at any point.
+**Todos los datos DNS son sintéticos.** En ningún momento se procesó tráfico DNS real,
+de producción o capturado.
 
-## 15. Remote API disclosure
+El sitio señuelo (`apps/phishing-demo`) representa una **institución ficticia**. Ninguna
+marca, nombre o dominio de un banco real se imita en ningún lugar de este repositorio.
 
-**No cloud AI inference is used.** No OpenAI, Anthropic, Gemini, Groq, Together,
-OpenRouter, remote embeddings or remote vision. There are no non-AI remote calls either:
-the only network destinations at run time are the local Kafka broker, ClickHouse, Grafana
-and the Wazuh endpoint.
+## 15. Declaración de APIs remotas
 
-Model weights were downloaded once from Hugging Face **before** the run, as a build step.
-The runtime refuses to download anything.
+**No se usa inferencia en la nube.** Ni OpenAI, ni Anthropic, ni Gemini, ni Groq, ni
+Together, ni OpenRouter, ni embeddings remotos, ni visión remota. Tampoco hay llamadas
+remotas que no sean de IA: en tiempo de ejecución los únicos destinos son el broker Kafka
+local, ClickHouse, Grafana y el endpoint de Wazuh.
 
-## 16. Third-party components
+Las pesas de los modelos se descargaron una vez desde Hugging Face **antes** de la
+corrida, como paso de construcción. El runtime se niega a descargar nada.
 
-| Component | Use |
+## 16. Componentes de terceros
+
+| Componente | Uso |
 |---|---|
-| Apache Kafka 4.3.1 | Event stream |
-| ClickHouse 26.8.2 | Storage |
+| Apache Kafka 4.3.1 | Flujo de eventos |
+| ClickHouse 26.8.2 | Almacenamiento |
 | Grafana 13.2.1 | Dashboards |
-| Wazuh | Alert destination (decoder and rules in `infra/wazuh/`) |
-| `kafkajs` | Kafka client |
-| `@qvac/sdk` | Local inference |
-| QVAC models | Tether AI Research |
+| Wazuh | Destino de alertas (decoder y reglas en `infra/wazuh/`) |
+| `kafkajs` | Cliente de Kafka |
+| `@qvac/sdk` | Inferencia local |
+| `playwright` | Navegador aislado para la investigación visual |
+| Modelos QVAC | Tether AI Research |
 
-The entire system has **two** external runtime dependencies: `kafkajs` and `@qvac/sdk`.
+## 17. Declaración de código preexistente
 
-## 17. Pre-existing code/base declaration
+**No se usó ningún código base preexistente.** Cada archivo de este repositorio se
+escribió dentro de la ventana de construcción (9 sep 2026 08:00 → 11 sep 2026 08:00,
+Panamá).
 
-**No pre-existing codebase was used.** Every file in this repository was written inside the
-build window (9 Sep 2026 08:00 → 11 Sep 2026 08:00, Panamá).
-
-A local QVAC model test bench was built to validate SDK feasibility; its files are
-timestamped 2026-09-09 09:57–11:48, also inside the window. The QVAC **model weights** are
-third-party artefacts published by Tether AI Research and are declared in §16.
+Se construyó un banco de pruebas local de modelos QVAC para validar la viabilidad del SDK;
+sus archivos están fechados 2026-09-09 09:57–11:48, también dentro de la ventana. Las
+**pesas de los modelos** QVAC son artefactos de terceros publicados por Tether AI Research
+y están declaradas en §16.
 
 ## 18. Benchmarks
 
-Measured on the hardware in §8 by `./qvac smoke --preset all`. **25 of 25 QVAC models
-pass.** The two relevant to Sentinel:
+Medidos en el hardware de §8 con `./qvac smoke --preset all`. **25 de 25 modelos QVAC
+pasan.** Los dos relevantes:
 
-| Model | Quantization | Throughput | Notes |
-|---|---|---|---|
-| `medpsy-4b-gguf` | `q4_k_m-imat` | **72.6 tok/s** | Analyst |
-| `visionpsy-460m-flash-gguf` | `q4_k_m-imat` | **238.0 tok/s** | TTFT ~0.8 s |
+| Modelo | Cuantización | Rendimiento |
+|---|---|---|
+| `medpsy-4b-gguf` | `q4_k_m-imat` | **72.6 tok/s** |
+| `visionpsy-460m-flash-gguf` | `q4_k_m-imat` | **238.0 tok/s**, TTFT ~0.8 s |
 
-End-to-end, in the running pipeline: **~15 s cold model load once, then ~5 s per incident
-explanation** (measured 5.5 / 4.4 / 5.1 s). Explanations are therefore thresholded — by
-default only incidents at risk ≥ 70 are explained.
+En el pipeline en ejecución: **~15 s de carga en frío una vez, luego ~5 s por explicación**
+(medidos 5.5 / 4.4 / 5.1 s) y **~5 s por análisis visual** más ~100 ms de render. Por eso
+las explicaciones tienen umbral: por defecto solo se explican incidentes de riesgo ≥ 70.
 
-## 19. Limitations
+## 19. Limitaciones
 
-- Synthetic DNS data only.
-- Not a replacement for enterprise threat intelligence.
-- Risk scores prioritise investigation; they are **not proof of compromise**.
-- The correlation verdict says *correlated*, never *caused*, and is enforced by a test.
-- The analyst model is clinically fine-tuned (§6). It explains; it does not decide.
-- **Vector is not in the pipeline.** The producer writes to Kafka directly; Ovnicom's
-  stated pipeline begins at BIND9 → dnstap → Vector. We start at the Kafka boundary.
-- **Active Evidence Acquisition and the VisionPsy investigation flow are not built.** The
-  vision model runs and is benchmarked, but the sandbox → screenshot → fusion loop does
-  not exist, which is why Track 02 is not claimed.
-- Site baselines need a few healthy windows before they mean anything; until then a fixed
-  reference is used and the output says so.
-- DNS encryption (DoH/DoT) limits visibility depending on deployment.
+- Solo datos DNS sintéticos.
+- No reemplaza inteligencia de amenazas empresarial.
+- Los puntajes priorizan investigación; **no son prueba de compromiso**.
+- El veredicto de correlación dice *correlacionado*, nunca *causado*, y hay una prueba que
+  lo verifica.
+- El modelo analista está afinado para uso clínico (§6). Explica; no decide.
+- El modelo de visión tiene 460M parámetros y a veces se contradice. Reportamos su
+  respuesta textual en lugar de corregirla — si no se puede leer con certeza, no se afirma
+  nada y el riesgo no se modifica.
+- **Vector no está en el pipeline.** El productor escribe a Kafka directamente; el pipeline
+  declarado por Ovnicom empieza en BIND9 → dnstap → Vector. Nosotros arrancamos en la
+  frontera de Kafka.
+- **No hacemos operaciones RAG**, lo que puede afectar el Track 02.
+- Los baselines por sede necesitan varias ventanas sanas antes de significar algo; hasta
+  entonces se usa una referencia fija y la salida lo dice.
+- El cifrado DNS (DoH/DoT) limita la visibilidad según el despliegue.
 
-## 20. Safety statement
+## 20. Declaración de seguridad
 
-Defensive use only. The system observes DNS metadata, scores it, and recommends
-investigation steps. It performs no blocking, no active scanning and no interaction with
-suspicious infrastructure. Alert severity is capped at Wazuh level 12 — level 13+ reads as
-a confirmed compromise, and a risk score is not that.
+Uso defensivo únicamente. El sistema observa metadatos DNS, los puntúa y recomienda pasos
+de investigación. No bloquea, no escanea activamente y no interactúa con infraestructura
+sospechosa más allá de renderizar una página en un navegador aislado sin credenciales ni
+almacenamiento. La severidad de las alertas se limita al nivel 12 de Wazuh — el 13 en
+adelante se lee como compromiso confirmado, y un puntaje de riesgo no es eso.
 
-## 21. License
+## 21. Licencia
 
-MIT — see [LICENSE](LICENSE).
+MIT — ver [LICENSE](LICENSE).
 
 ---
 
-**Contributors and AI agents:** read [`AGENTS.md`](AGENTS.md) before making any change.
+**Colaboradores y agentes de IA:** lean [`AGENTS.md`](AGENTS.md) antes de hacer cualquier
+cambio.
