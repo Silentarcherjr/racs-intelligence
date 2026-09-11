@@ -175,6 +175,14 @@
     "Waiting for data": "Esperando datos",
     "Not measured": "Sin medir",
     "Local-first DNS security": "Seguridad DNS local por diseño",
+    "Local-first DNS security. All analysis runs on-premise.":
+      "Seguridad DNS local por diseño. Todo el análisis corre en sitio.",
+    "Security overview": "Panorama de seguridad",
+    "Incident investigation": "Investigación de incidentes",
+    "Network health": "Salud de la red",
+    "Local intelligence": "Inteligencia local",
+    "RACS INTELLIGENCE": "RACS INTELLIGENCE",
+    "Command Center": "Centro de mando",
   };
 
   const STORE = "racs.lang";
@@ -241,13 +249,36 @@
   document.addEventListener("DOMContentLoaded", () => {
     mountSwitcher();
     apply();
-    // The dashboard replaces whole sections on refresh, so re-apply after each.
-    new MutationObserver((muts) => {
-      for (const m of muts) {
-        for (const n of m.addedNodes) {
-          if (n.nodeType === 1) apply(n);
+
+    // The dashboard both replaces sections and rewrites existing text with
+    // textContent — the page heading changes that way on navigation. Watching
+    // only childList left those headings in English while the rest of the page
+    // was Spanish.
+    //
+    // `applying` breaks the feedback loop: writing a translation is itself a
+    // characterData mutation, so without the guard the observer would re-enter
+    // on its own output.
+    let applying = false;
+    const observer = new MutationObserver((muts) => {
+      if (applying) return;
+      applying = true;
+      try {
+        for (const m of muts) {
+          if (m.type === "characterData") {
+            const el = m.target.parentElement;
+            if (el) apply(el);
+          } else {
+            for (const n of m.addedNodes) if (n.nodeType === 1) apply(n);
+          }
         }
+      } finally {
+        // Release after the microtask queue drains, so our own writes are not
+        // read back as fresh input.
+        queueMicrotask(() => { applying = false; });
       }
-    }).observe(document.body, { childList: true, subtree: true });
+    });
+    observer.observe(document.body, {
+      childList: true, subtree: true, characterData: true,
+    });
   });
 })();
