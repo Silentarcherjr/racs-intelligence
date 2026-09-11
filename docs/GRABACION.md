@@ -64,9 +64,24 @@ Limpia la base para que la pantalla arranque vacía:
     -H "X-ClickHouse-User: sentinel" -H "X-ClickHouse-Key: sentinel" `
     http://127.0.0.1:8123/
 
-Levanta la interfaz en segundo plano:
+Mata cualquier interfaz que haya quedado corriendo de antes. ESTO IMPORTA: si
+un proceso viejo sigue ocupando el 3001, el nuevo falla en silencio por puerto
+ocupado y el viejo sigue sirviendo el build ANTERIOR al git pull. Los síntomas
+son endpoints que "no existen" y texto sin traducir:
+
+  Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+
+Ahora levanta la interfaz:
 
   Start-Process npm -ArgumentList "start","-w","@sentinel/analyst-ui"
+
+Espera 5 segundos y comprueba que sea el build NUEVO:
+
+  Invoke-RestMethod http://127.0.0.1:3001/api/capabilities
+
+Debe devolver algo como  textModel : True.  Si devuelve "Not found", estás
+hablando con un proceso viejo: vuelve a matar el 3001 y repite.
 
 ═══ PASO 3 · CALENTAMIENTO — NO GRABAR ═════════════════════════════════════
 
@@ -77,10 +92,10 @@ frío, el video tiene 15 segundos muertos esperando al modelo.
 
 Vuelve a limpiar dns_incidents con el mismo comando del paso 2.
 
-═══ PASO 4 · SEIS VERIFICACIONES OBLIGATORIAS ══════════════════════════════
+═══ PASO 4 · SIETE VERIFICACIONES OBLIGATORIAS ═════════════════════════════
 
 Comprueba CADA UNA. Si alguna falla, PARA y repórtala. No grabes hasta que
-las seis pasen.
+las siete pasen.
 
 1. docker compose ps
    → clickhouse y kafka deben decir "healthy". No "starting", no "unhealthy".
@@ -88,23 +103,27 @@ las seis pasen.
 2. npm run bootstrap
    → debe terminar con la palabra "Ready." Si hay algún ✗, para.
 
-3. Abre http://127.0.0.1:3001
+3. Invoke-RestMethod http://127.0.0.1:3001/api/capabilities
+   → debe responder textModel. Si dice "Not found", hay un proceso viejo en el
+     3001 sirviendo un build anterior: mátalo y relanza la interfaz.
+
+4. Abre http://127.0.0.1:3001
    → el panel de inteligencia local debe mostrar el modelo de texto y el de
      visión como cargado o disponible. Si dice "no disponible", faltan las
      pesas: para y avisa.
 
-4. La interfaz debe estar EN ESPAÑOL. Si ves texto en inglés en títulos o
+5. La interfaz debe estar EN ESPAÑOL. Si ves texto en inglés en títulos o
    botones, para y repórtalo — es un bug, no una configuración.
 
-5. Tras el calentamiento, la tabla de incidentes debe tener AL MENOS 3 filas,
+6. Tras el calentamiento, la tabla de incidentes debe tener AL MENOS 3 filas,
    y al menos una con el ícono de cámara. Si sale vacía o sin cámara, para.
 
-6. Haz clic en un incidente con cámara.
+7. Haz clic en un incidente con cámara.
    → debe abrirse la captura de un sitio bancario falso
    → el botón "Explicar con QVAC" debe estar ACTIVO, no gris
    → púlsalo: en ~5 segundos debe aparecer un análisis EN ESPAÑOL
 
-Solo si las seis pasan, limpia la base y empieza a grabar.
+Solo si las siete pasan, limpia la base y empieza a grabar.
 
 ═══ PASO 5 · PREPARAR LAS TOMAS ════════════════════════════════════════════
 
