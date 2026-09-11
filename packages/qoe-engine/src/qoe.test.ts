@@ -16,8 +16,8 @@ const events = JSON.parse(
 
 test("the degraded branch scores worse than headquarters", () => {
   const results = scoreAllSites(events, new BaselineStore());
-  const branch = results.find((r) => r.window.siteId === "pa-branch-01")!;
-  const hq = results.find((r) => r.window.siteId === "pa-hq")!;
+  const branch = results.find((r) => r.window.siteId === "ca-costa-del-este")!;
+  const hq = results.find((r) => r.window.siteId === "ca-casa-matriz")!;
   // The fixture plants 380-950ms latency and SERVFAIL bursts at the branch only.
   assert.ok(branch.window.score < hq.window.score,
     `branch ${branch.window.score} should be worse than hq ${hq.window.score}`);
@@ -26,11 +26,11 @@ test("the degraded branch scores worse than headquarters", () => {
 test("every penalty stays inside its ceiling", () => {
   const awful: DnsEvent[] = Array.from({ length: 50 }, (_, i) => ({
     timestamp: new Date(Date.UTC(2026, 8, 9, 12, 0, i)).toISOString(),
-    siteId: "pa-hq", zone: "corp.local", clientIp: "10.10.1.20",
+    siteId: "ca-casa-matriz", zone: "corp.banco.local", clientIp: "10.10.1.20",
     resolverIp: "10.10.0.53", qname: "x.example", qtype: "A",
     rcode: i % 2 ? "SERVFAIL" : "NXDOMAIN", latencyMs: 9000,
   }));
-  const s = scoreWindow(windowStats("pa-hq", awful)!, undefined);
+  const s = scoreWindow(windowStats("ca-casa-matriz", awful)!, undefined);
   assert.ok(s.window.penalties.latency <= MAX_PENALTY.latency);
   assert.ok(s.window.penalties.nxdomain <= MAX_PENALTY.nxdomain);
   assert.ok(s.window.penalties.failures <= MAX_PENALTY.failures);
@@ -47,7 +47,7 @@ test("score always equals 100 minus its stated penalties", () => {
 });
 
 test("a healthy window is not attributed to anything", () => {
-  const healthy = scoreWindow(windowStats("pa-hq", events.slice(0, 5))!, undefined);
+  const healthy = scoreWindow(windowStats("ca-casa-matriz", events.slice(0, 5))!, undefined);
   const c = correlate(healthy, []);
   assert.equal(c.verdict, "UNKNOWN");
   assert.equal(c.correlationScore, 0);
@@ -57,11 +57,11 @@ test("beaconing is never blamed for degradation", () => {
   // Beaconing is low-volume by design. Blaming it for a resolver problem would
   // send an operator hunting malware while the real fault is capacity.
   const bad = scoreWindow(
-    windowStats("pa-branch-01", events.filter((e) => e.latencyMs > 300))!,
+    windowStats("ca-costa-del-este", events.filter((e) => e.latencyMs > 300))!,
     undefined,
   );
   const beacon: Incident = {
-    id: "b1", createdAt: "", updatedAt: "", siteId: "pa-branch-01",
+    id: "b1", createdAt: "", updatedAt: "", siteId: "ca-costa-del-este",
     sourceHosts: ["10.20.1.66"], domains: ["cdn-sync-node.example"],
     classification: "possible_beaconing", riskScore: 65, confidence: 0.58, evidence: [],
   };
@@ -72,11 +72,11 @@ test("beaconing is never blamed for degradation", () => {
 
 test("correlation language never claims causation", () => {
   const bad = scoreWindow(
-    windowStats("pa-hq", events.filter((e) => e.rcode === "NXDOMAIN"))!,
+    windowStats("ca-casa-matriz", events.filter((e) => e.rcode === "NXDOMAIN"))!,
     undefined,
   );
   const dga: Incident = {
-    id: "d1", createdAt: "", updatedAt: "", siteId: "pa-hq",
+    id: "d1", createdAt: "", updatedAt: "", siteId: "ca-casa-matriz",
     sourceHosts: ["10.10.1.77"], domains: ["x.info"],
     classification: "possible_dga", riskScore: 75, confidence: 0.87, evidence: [],
   };
@@ -92,7 +92,7 @@ test("a site that stays degraded never learns that degraded is normal", () => {
   // reports "excellent" — silently, which is the worst kind of wrong.
   const bad: DnsEvent[] = Array.from({ length: 40 }, (_, i) => ({
     timestamp: new Date(Date.UTC(2026, 8, 9, 12, 0, i)).toISOString(),
-    siteId: "pa-branch-01", zone: "branch.corp.local", clientIp: "10.20.1.50",
+    siteId: "ca-costa-del-este", zone: "sucursal.banco.local", clientIp: "10.20.1.50",
     resolverIp: "10.20.0.53", qname: "google.com", qtype: "A",
     rcode: i % 4 === 0 ? "SERVFAIL" : "NOERROR", latencyMs: 800,
   }));
@@ -111,13 +111,13 @@ test("a site that stays degraded never learns that degraded is normal", () => {
 test("a healthy site does build a baseline", () => {
   const good: DnsEvent[] = Array.from({ length: 40 }, (_, i) => ({
     timestamp: new Date(Date.UTC(2026, 8, 9, 12, 0, i)).toISOString(),
-    siteId: "pa-hq", zone: "corp.local", clientIp: "10.10.1.20",
+    siteId: "ca-casa-matriz", zone: "corp.banco.local", clientIp: "10.10.1.20",
     resolverIp: "10.10.0.53", qname: "google.com", qtype: "A",
     rcode: "NOERROR", latencyMs: 15,
   }));
   const store = new BaselineStore();
   for (let i = 0; i < 4; i++) scoreAllSites(good, store);
-  const b = store.get("pa-hq")!;
+  const b = store.get("ca-casa-matriz")!;
   assert.ok(b.samples >= 3, `expected a warm baseline, got ${b.samples} samples`);
   assert.ok(scoreAllSites(good, store)[0]!.usedBaseline, "should now score against it");
 });

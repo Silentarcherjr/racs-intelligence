@@ -6,7 +6,7 @@ import { HttpSink } from "./sinks.js";
 
 const incident: Incident = {
   id: "abc123", createdAt: "2026-09-09T12:15:55Z", updatedAt: "2026-09-09T12:15:55Z",
-  siteId: "pa-hq", sourceHosts: ["10.10.1.91"], domains: ["tun.exfil-demo.example"],
+  siteId: "ca-casa-matriz", sourceHosts: ["10.10.1.91"], domains: ["tun.exfil-demo.example"],
   classification: "possible_tunneling", riskScore: 90, confidence: 1,
   evidence: [{ type: "subdomain_length", source: "lexical", value: 48, weight: 25,
                description: "Mean subdomain length 48 characters." }],

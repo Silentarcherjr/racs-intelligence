@@ -180,28 +180,60 @@ que no tiene equivalente en Windows que valga la pena fingir.
 
 ## 11. Escenarios de demo
 
+La telemetría está segmentada como la red de un banco: el centro de datos, las sucursales,
+el canal que da la cara al cliente y la red de cajeros.
+
+| Sede | Segmento |
+|---|---|
+| `ca-casa-matriz` | Casa Matriz — centro de datos |
+| `ca-costa-del-este` | Sucursal Costa del Este |
+| `ca-el-dorado` | Sucursal El Dorado |
+| `ca-banca-linea` | Banca en Línea |
+| `ca-red-atm` | Red ATM |
+
+Costa del Este, El Dorado y La Chorrera son distritos reales de Panamá con sucursales
+bancarias reales. **Las marcas de las amenazas, en cambio, son todas ficticias**: un
+repositorio público que incluya una imitación convincente de la página de acceso de un
+banco real es un riesgo, sin importar la intención. El sitio señuelo que el sandbox
+renderiza pertenece a un "Banco Aurora del Istmo" que no existe.
+
 `npm run demo` reproduce 66 eventos y produce, idénticamente en cada corrida:
 
 | Riesgo | Clasificación | Evidencia |
 |---|---|---|
 | 90 | Tunneling DNS | Subdominios codificados de 48 caracteres, 100% TXT/NULL, sin caché |
-| 80 | Typosquatting | `micr0soft-secure-login.example`, homoglifo, dos sedes |
+| 80 | Typosquatting | Homoglifo sobre una marca protegida, dos sedes afectadas |
 | 75 | DGA | 10 nombres únicos, 100% NXDOMAIN, 3.66 bits de entropía |
 | 65 | Beaconing | Coeficiente de variación 0.000 con cadencia de 60 s |
-| 60 / 35 | Typosquatting | `app1e-id-verify`, `banes-co-panama` |
+| 60 / 35 | Typosquatting | Sustitución de carácter, un solo host |
 
 Y la correlación que une seguridad con operaciones:
 
 ```
-pa-branch-01  QoE 45  LIKELY_OPERATIONAL      ningún hallazgo lo explica
-pa-hq         QoE 59  LIKELY_SECURITY_DRIVEN  DGA + tunneling explican el 100%
+ca-costa-del-este  QoE 45  LIKELY_OPERATIONAL      ningún hallazgo lo explica
+ca-casa-matriz     QoE 59  LIKELY_SECURITY_DRIVEN  DGA + tunneling explican el 100%
 ```
 
-**Escenario bancario (Track 05).** `npm run demo -- typosquat` genera dominios que imitan
-marcas bancarias. El investigador decide que el nombre por sí solo no distingue un dominio
-aparcado de una página viva de robo de credenciales, renderiza el sitio en un navegador
-aislado, y VisionPsy confirma el formulario de credenciales y el lenguaje de urgencia. El
-riesgo sube de 64 a 89 — y el tráfico DNS que lo reveló nunca sale del banco.
+Un operador ve de inmediato que la sucursal tiene un problema de infraestructura y que el
+centro de datos tiene un problema de seguridad — **la misma ventana de tiempo, dos causas
+distintas, cada una con su razonamiento.**
+
+### El escenario bancario (Track 05)
+
+`npm run demo -- typosquat` genera dominios que imitan marcas bancarias.
+
+1. Un empleado de sucursal resuelve un dominio que imita a su banco.
+2. Los motores deterministas lo puntúan en 64: homoglifo, marca contenida, varios hosts.
+3. **El investigador decide que eso no alcanza** — el nombre por sí solo no distingue un
+   dominio aparcado de una página viva de robo de credenciales.
+4. Renderiza el sitio en un navegador aislado, sin credenciales ni almacenamiento.
+5. VisionPsy, en el dispositivo, confirma el formulario de credenciales y el lenguaje de
+   urgencia.
+6. El riesgo sube a 89 y la alerta llega a Wazuh con la captura adjunta.
+
+**Ni la consulta DNS, ni el nombre del dominio, ni la IP del endpoint, ni la captura de
+pantalla salieron de la infraestructura del banco.** Esa es la diferencia entre esto y
+cualquier servicio de análisis de phishing en la nube.
 
 ## 12. Zero-egress
 

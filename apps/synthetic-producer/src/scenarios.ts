@@ -10,14 +10,26 @@ import type { DnsEvent } from "@sentinel/dns-schema";
 import { between, intBetween, pick, type Rng } from "./rng.js";
 
 export const SITES = [
-  { siteId: "pa-hq", zone: "corp.local", resolverIp: "10.10.0.53", clientPrefix: "10.10.1." },
-  { siteId: "pa-branch-01", zone: "branch.corp.local", resolverIp: "10.20.0.53", clientPrefix: "10.20.1." },
+  // A bank's DNS telemetry is segmented the way its network is: the data
+  // centre, the branches, the channel that faces customers, and the ATM
+  // estate. The names are real Panamanian districts with real bank branches —
+  // a jury from a Panamanian bank should recognise its own map.
+  { siteId: "ca-casa-matriz", zone: "corp.banco.local",
+    resolverIp: "10.10.0.53", clientPrefix: "10.10.1.", label: "Casa Matriz" },
+  { siteId: "ca-costa-del-este", zone: "sucursal.banco.local",
+    resolverIp: "10.20.0.53", clientPrefix: "10.20.1.", label: "Sucursal Costa del Este" },
+  { siteId: "ca-el-dorado", zone: "sucursal.banco.local",
+    resolverIp: "10.30.0.53", clientPrefix: "10.30.1.", label: "Sucursal El Dorado" },
+  { siteId: "ca-banca-linea", zone: "ebank.banco.local",
+    resolverIp: "10.40.0.53", clientPrefix: "10.40.1.", label: "Banca en Línea" },
+  { siteId: "ca-red-atm", zone: "atm.banco.local",
+    resolverIp: "10.50.0.53", clientPrefix: "10.50.1.", label: "Red ATM" },
 ] as const;
 
 const POPULAR = [
-  "google.com", "github.com", "cloudflare.com", "apple.com", "banesco.com.pa",
-  "microsoft.com", "wikipedia.org", "ubuntu.com", "docs.python.org",
-  "office365.com", "slack.com", "npmjs.com",
+  "google.com", "github.com", "cloudflare.com", "apple.com", "microsoft.com",
+  "office365.com", "outlook.com", "swift.com", "visa.com", "mastercard.com",
+  "superbancos.gob.pa", "bnp.gob.pa", "sri.gob.pa", "windowsupdate.com",
 ];
 
 const ALPHANUM = "abcdefghijklmnopqrstuvwxyz0123456789";
