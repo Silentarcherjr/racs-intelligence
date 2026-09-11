@@ -161,6 +161,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
         "/dashboard.css": { file: "dashboard.css", type: "text/css; charset=utf-8" },
         "/dashboard.js": { file: "dashboard.js", type: "text/javascript; charset=utf-8" },
         "/i18n.js": { file: "i18n.js", type: "text/javascript; charset=utf-8" },
+        "/autodemo.js": { file: "autodemo.js", type: "text/javascript; charset=utf-8" },
         "/racs-logo.jpeg": { file: "racs-logo.jpeg", type: "image/jpeg" },
       };
       const asset = assets[path];

@@ -44,21 +44,21 @@ ok()  { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 bad() { printf '  \033[31m✗\033[0m %s\n' "$*"; FAIL=1; }
 
 say ""
-say "Zero-egress verification"
+say "Verificación de egress cero"
 say "════════════════════════"
 say ""
 
 # ── 1. Static: no cloud AI SDK anywhere in the dependency tree ───────────────
-say "1. Dependency audit"
+say "1. Auditoría de dependencias"
 FORBIDDEN="openai anthropic @google/generative-ai @google-cloud google-generativeai groq-sdk together-ai cohere-ai @mistralai replicate langchain llamaindex"
 found=""
 for pkg in $FORBIDDEN; do
   [ -d "node_modules/$pkg" ] && found="$found $pkg"
 done
 if [ -n "$found" ]; then
-  bad "cloud AI SDKs present:$found"
+  bad "hay SDKs de IA en la nube presentes:$found"
 else
-  ok "no cloud AI SDK installed (checked: $(echo $FORBIDDEN | wc -w | tr -d ' ') names)"
+  ok "sin SDK de IA en la nube instalado (revisados: $(echo $FORBIDDEN | wc -w | tr -d ' ') nombres)"
 fi
 
 runtime_deps=$(node -e '
@@ -69,11 +69,11 @@ runtime_deps=$(node -e '
     const d=JSON.parse(fs.readFileSync(f,"utf8"));
     for(const k of Object.keys(d.dependencies||{})) if(!k.startsWith("@sentinel/")) ext.add(k); }
   console.log([...ext].sort().join(" "));')
-ok "external runtime dependencies: ${runtime_deps:-none}"
+ok "dependencias externas en tiempo de ejecución: ${runtime_deps:-ninguna}"
 
 # ── 2. Static: no external URLs in source ────────────────────────────────────
 say ""
-say "2. Source audit"
+say "2. Auditoría de código fuente"
 # Test files are excluded on purpose: they contain external URLs precisely to
 # assert that the code REFUSES them. Flagging those would train everyone to
 # ignore this check, which is worse than not having it.
@@ -82,22 +82,22 @@ urls=$(grep -rEoh 'https?://[a-zA-Z0-9.-]+' \
       | grep -vE '://(127\.|localhost|\[?::1|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|kafka|clickhouse|grafana)' \
       | sort -u)
 if [ -n "$urls" ]; then
-  bad "non-local URLs found in source:"
+  bad "se encontraron URLs no locales en el código fuente:"
   printf '      %s\n' $urls
 else
-  ok "no external URLs in application source"
+  ok "sin URLs externas en el código fuente de la aplicación"
 fi
 
 # ── 3. Runtime: watch the process's real connections ─────────────────────────
 say ""
-say "3. Live pipeline — observing real sockets"
+say "3. Flujo en vivo — observando sockets reales"
 
 if ! nc -z "${BROKER%%:*}" "${BROKER##*:}" 2>/dev/null; then
-  bad "Kafka is not reachable at $BROKER — start it and re-run"
+  bad "Kafka no está disponible en $BROKER — inícialo y vuelve a ejecutar"
   say ""
   exit 1
 fi
-ok "Kafka reachable at $BROKER"
+ok "Kafka disponible en $BROKER"
 
 node apps/sentinel-agent/dist/index.js \
   --group "$GROUP" --interval 3 --window 3600 --no-alerts > "$LOG" 2>&1 &
@@ -124,9 +124,9 @@ for peer in $peers; do
 done
 
 if [ -n "$external" ]; then
-  bad "process holds connections OUTSIDE the trusted boundary:$external"
+  bad "el proceso mantiene conexiones FUERA del límite de confianza:$external"
 else
-  ok "every open socket is loopback or private: $(echo $peers | tr '\n' ' ')"
+  ok "todo socket abierto es loopback o privado: $(echo $peers | tr '\n' ' ')"
 fi
 
 kill -TERM $AGENT_PID 2>/dev/null
@@ -136,15 +136,16 @@ sed -n '/SOVEREIGN MODE/,$p' "$LOG"
 say ""
 say "════════════════════════"
 if [ "$FAIL" -eq 0 ]; then
-  say "RESULT: PASS — no egress outside the trusted boundary."
+  say "RESULTADO: APROBADO — sin egress fuera del límite de confianza."
   say ""
-  say "Scope, stated plainly: this proves the application makes no external"
-  say "connection during a full pipeline run, and that no cloud AI SDK is even"
-  say "installed. It is NOT an air gap — the machine has a working network"
-  say "interface. For the strongest demonstration, switch Wi-Fi off and run the"
-  say "demo again: it behaves identically."
+  say "Alcance, dicho con claridad: esto demuestra que la aplicación no hace"
+  say "ninguna conexión externa durante una corrida completa del pipeline, y"
+  say "que ni siquiera hay un SDK de IA en la nube instalado. NO es un air"
+  say "gap — la máquina tiene una interfaz de red funcional. Para la prueba"
+  say "más contundente, apaga el Wi-Fi y vuelve a correr el demo: se comporta"
+  say "idéntico."
 else
-  say "RESULT: FAIL — see the failures above."
+  say "RESULTADO: FALLÓ — revisa los fallos anteriores."
 fi
 say ""
 exit "$FAIL"
