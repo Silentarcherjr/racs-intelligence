@@ -176,6 +176,23 @@
     "Not measured": "Sin medir",
     "Local-first DNS security": "Seguridad DNS local por diseño",
 
+    // ── Resultado del análisis ───────────────────────────────────────────
+    "Analyzing locally…": "Analizando localmente…",
+    "Loading local evidence…": "Cargando evidencia local…",
+    "Visual + DNS": "Visual + DNS",
+    "Inspect": "Inspeccionar",
+    "Summary:": "Resumen:",
+    "Summary": "Resumen",
+    "Likely scenario:": "Escenario probable:",
+    "Likely scenario": "Escenario probable",
+    "Confidence:": "Confianza:",
+    "Next action:": "Siguiente acción:",
+    "Next action": "Siguiente acción",
+    "Reasoning evidence": "Evidencia del razonamiento",
+    "low": "baja",
+    "medium": "media",
+    "high": "alta",
+
     // ── Detalle del incidente ────────────────────────────────────────────
     "Source hosts": "Hosts de origen",
     "Visual investigation": "Investigación visual",
@@ -310,26 +327,38 @@
     // characterData mutation, so without the guard the observer would re-enter
     // on its own output.
     let applying = false;
-    const observer = new MutationObserver((muts) => {
-      if (applying) return;
+    let pending = false;
+
+    /**
+     * Re-translate the whole document, coalescing bursts.
+     *
+     * The first version returned early while a pass was running, which DROPPED
+     * that batch of mutations. The dashboard re-renders whole sections on every
+     * refresh, so a render landing during a pass was simply never translated —
+     * which is why the incident detail kept showing English headings that were
+     * in the dictionary all along. Now a collision schedules another pass
+     * instead of discarding the work.
+     */
+    function schedule() {
+      if (applying) { pending = true; return; }
       applying = true;
-      try {
-        for (const m of muts) {
-          if (m.type === "characterData") {
-            const el = m.target.parentElement;
-            if (el) apply(el);
-          } else {
-            for (const n of m.addedNodes) if (n.nodeType === 1) apply(n);
-          }
+      requestAnimationFrame(() => {
+        try { apply(); } finally {
+          applying = false;
+          if (pending) { pending = false; schedule(); }
         }
-      } finally {
-        // Release after the microtask queue drains, so our own writes are not
-        // read back as fresh input.
-        queueMicrotask(() => { applying = false; });
-      }
-    });
+      });
+    }
+
+    const observer = new MutationObserver(() => schedule());
     observer.observe(document.body, {
       childList: true, subtree: true, characterData: true,
     });
+
+    // Belt and braces: a periodic pass catches anything a mutation record
+    // misses — content moved into a <dialog>, or written before the observer
+    // was armed. Cheap on a page this size, and the failure it prevents is the
+    // one nobody notices until it is on camera.
+    setInterval(schedule, 1500);
   });
 })();
