@@ -161,20 +161,162 @@ que bloquea sockets sí funciona igual en Windows — es el mismo código.
 
 ---
 
-## Notas para quien edita después
+## PARTE B — Editar con Hyperframes
 
-- **Voz:** generar con el modelo de Google AI Studio, sobre el guion narrado.
-  Deja el guion cerrado antes de generar audio — sincronizar voz contra tomas
-  ya cortadas es más fácil que al revés.
-- **Edición:** hyperframes.
-- **No incluir Grafana.** Es una tercera superficie que no aporta nada que la
-  UI no muestre ya, y en cinco minutos cada segundo cuenta.
+```
+Ya tienes los clips. Ahora edita. El objetivo es un video de EXACTAMENTE
+5 minutos o menos. Si te pasas, el jurado corta donde sea.
+
+── ORDEN DE LOS CORTES ──────────────────────────────────────────────────────
+
+  1. 0:00–0:22   Panel general de la UI. Estático, sin movimiento de cámara.
+  2. 0:22–1:05   Terminal: detecciones apareciendo. Acelera SOLO los espacios
+                 muertos entre detecciones, nunca el texto que se lee.
+  3. 1:05–2:00   La línea "investigating:". ZOOM al 140% sobre esa línea y
+                 mantenlo mientras se lee. Luego el render y VisionPsy.
+  4. 2:00–2:45   Corte a la UI. Clic en el incidente con cámara. La captura
+                 del sitio falso ocupa el encuadre.
+  5. 2:45–3:20   El botón "Explicar con QVAC". DEJA LA ESPERA COMPLETA de
+                 ~5 segundos. No la cortes: es el argumento.
+  6. 3:20–4:00   QoE y correlación SOC/NOC. ZOOM a los dos veredictos
+                 opuestos, lado a lado si se puede.
+  7. 4:00–4:35   Panel de zero-egress. ZOOM a los ceros.
+  8. 4:35–5:00   Modo avión activándose, y el demo corriendo igual.
+
+── REGLAS DE EDICIÓN ────────────────────────────────────────────────────────
+
+- NO aceleres ningún texto que el espectador deba leer.
+- NO aceleres la espera de la inferencia. Esos 5 segundos prueban que el
+  modelo corre en la máquina.
+- Cortes duros entre secciones. Sin transiciones de fantasía.
+- Si haces zoom, que sea lento y sostenido, no un salto.
+- Sin música. La voz y el texto en pantalla bastan.
+- Resolución final 1920x1080, 30fps, H.264, bajo 100 MB si se puede.
+
+── RÓTULOS EN PANTALLA ──────────────────────────────────────────────────────
+
+Texto sobrio, esquina inferior izquierda, mismo tipo en todos:
+
+  0:22   Detección determinista · cuatro motores
+  1:05   El sistema decide que le falta evidencia
+  2:00   Evidencia visual, capturada y analizada en esta máquina
+  2:45   Modelo local · MedPsy-4B · sin conexión a la nube
+  3:20   Seguridad y operaciones en un solo contexto
+  4:00   Cero egress, verificado
+  4:35   Sin red
+
+── PARTE C: VOZ Y SINCRONIZACIÓN ────────────────────────────────────────────
+
+La voz se genera con el modelo de Google AI Studio a partir del guion de más
+abajo. Proceso:
+
+  1. Genera el audio del guion completo, en español neutro, tono calmado.
+     Nada de locutor entusiasta: esto es un producto de seguridad.
+  2. Alinea el audio contra los cortes. Si un tramo de voz es más largo que
+     su toma, ALARGA la toma (congela el último fotograma o extiende el
+     plano), no aceleres la voz.
+  3. Si el audio total pasa de 5:00, recorta del guion — nunca aceleres.
+  4. Revisa que la voz no tape ningún momento donde el espectador deba leer
+     texto en pantalla.
+
+Si algo no cuadra, PARA y repórtalo antes de exportar.
+```
+
+---
+
+## Guion narrado
+
+Español neutro, tono calmado. Unas 730 palabras, que a ritmo normal dan
+alrededor de 4:50 — deja margen.
+
+> **[0:00]** La telemetría DNS de un banco revela más de lo que parece. Qué
+> aplicaciones usa cada área, cómo se comporta cada endpoint, la estructura
+> interna de la organización. Para una institución regulada, incluso una
+> representación derivada de ese tráfico es información sensible.
+>
+> **[0:15]** Y eso vuelve inutilizable el camino habitual: mandar la telemetría
+> a una API en la nube para que un modelo la analice. RACS Intelligence hace lo
+> contrario. Todo ocurre aquí.
+>
+> **[0:30]** Esto es tráfico DNS de la red de un banco: la casa matriz, las
+> sucursales, la banca en línea, la red de cajeros. Cuatro motores deterministas
+> lo analizan en tiempo real y detectan dominios generados por algoritmo,
+> tunneling, beaconing y suplantación de marca.
+>
+> **[0:50]** Cada detección trae su evidencia y el peso de cada pieza. El
+> puntaje no es un porcentaje que salió de un modelo: es la suma de estas
+> piezas, y cualquiera puede auditarla.
+>
+> **[1:05]** Aquí está la diferencia. El sistema encontró un dominio que imita
+> a un banco. Riesgo sesenta y cuatro. Un detector normal dispara la alerta y
+> termina.
+>
+> **[1:20]** Este decide que **le falta evidencia** — y explica por qué: el
+> nombre por sí solo no distingue un dominio aparcado de una página viva de
+> robo de credenciales. Así que va a buscarla.
+>
+> **[1:35]** Abre un navegador aislado, sin credenciales y sin almacenamiento,
+> con la navegación anclada al dominio. Fotografía la página. Y un segundo
+> modelo, de visión, analiza esa captura. También aquí.
+>
+> **[1:55]** Confirma el formulario de credenciales y el lenguaje de urgencia.
+> El riesgo sube de sesenta y cuatro a ochenta y nueve. La captura nunca salió
+> de esta máquina.
+>
+> **[2:10]** Esto es lo que ve el analista: la página falsa que el sistema
+> encontró, al lado de la evidencia DNS que la delató.
+>
+> **[2:30]** Y puede pedirle al modelo local que lo explique.
+>
+> **[2:45]** Fíjense en la espera. Cinco segundos. Eso es un modelo de cuatro
+> mil millones de parámetros corriendo en esta computadora. Una API en la nube
+> respondería en trescientos milisegundos — y se habría llevado los datos.
+>
+> **[3:05]** El modelo explica la evidencia. Nunca la inventa, y nunca toca el
+> puntaje.
+>
+> **[3:20]** RACS también responde la pregunta de las dos de la mañana: ¿el DNS
+> está lento porque el resolver sufre, o porque algo en la red se está portando
+> mal?
+>
+> **[3:35]** Misma ventana de tiempo, dos sedes, veredictos opuestos. La
+> sucursal tiene un problema de infraestructura. La casa matriz tiene un
+> problema de seguridad, y el sistema muestra qué hallazgos lo explican.
+>
+> **[3:50]** Nunca dice *causado*. Dice *correlacionado*. Hay una prueba
+> automatizada que falla si el sistema afirma causalidad.
+>
+> **[4:00]** Y el cero egress no es una frase del README. Hay un guard que
+> bloquea cualquier conexión no local, una verificación a nivel de sistema
+> operativo, y cero SDKs de nube instalados.
+>
+> **[4:20]** Cero endpoints de inferencia en la nube. Cero eventos DNS
+> subidos. Cero capturas subidas.
+>
+> **[4:35]** No decimos que sea un air gap. La máquina tiene red. Simplemente
+> no la usamos.
+>
+> **[4:45]** Y esta es la prueba que no requiere que nos crean nada.
+>
+> **[4:52]** RACS Intelligence. Sus datos. Su perímetro.
+
+---
+
+## Notas
+
+- **No incluir Grafana.** Tercera superficie que no aporta nada que la UI no
+  muestre, y en cinco minutos cada segundo cuenta.
+- **MedPsy es de 4B y ocasionalmente mezcla idiomas.** Si sale un carácter
+  raro en cámara, repetir la toma. No es un bug del código.
+- **Limpiar `dns_incidents` antes de grabar**, o quedan explicaciones viejas
+  en inglés de corridas anteriores.
 
 ## Cambios recientes que afectan la grabación
 
 | PR | Qué cambió |
 |---|---|
-| #31 | El analista QVAC responde en español, y VisionPsy también |
-| #30 | Se tradujo el detalle del incidente y las acciones recomendadas |
-| #29 | El botón "Explicar con QVAC" ya no depende de que el agente corra |
+| #33 | Los incidentes investigados ya se guardan — antes se perdían todos |
+| #32 | El traductor descartaba lotes; añadido `npm run audit:i18n` |
+| #31 | El analista QVAC responde en español |
+| #29 | El botón «Explicar con QVAC» ya no depende del agente |
 | #28 | Barra lateral deslizable, logotipo sin recorte |
