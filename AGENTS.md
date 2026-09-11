@@ -383,6 +383,33 @@ Contracts:  (anything added/changed in §6)
 Next:       (the single most useful next action for whoever picks this up)
 ```
 
+### 2026-09-11 — Claude (Sonnet 5) — i18n crítico: nada se traducía (commit 2d67369)
+Did:        **Encontrado y arreglado en vivo, minutos antes de grabar.** `translatable()`
+            en `apps/analyst-ui/html/i18n.js` estaba declarada en las líneas 1-6, **antes**
+            del `(function () { ... })()` que contiene `DICT`, `lang` y `translate()`. Al
+            vivir fuera de ese closure, cada llamada a `translatable()` lanzaba
+            `ReferenceError: lang is not defined` — silenciado por el `catch` de `apply()`
+            — así que **ningún nodo de texto se marcaba como traducible jamás**. Resultado:
+            todo el dashboard salía en inglés con el selector mostrando ES, sin ningún
+            error visible en consola de usuario. `npm run audit:i18n` no lo detectaba
+            porque audita el diccionario contra el código fuente, no la ejecución real.
+            Reubicada la función a su lugar original dentro del closure (había un
+            comentario huérfano marcando exactamente dónde iba — se movió, no se reescribió
+            lógica). Verificado recargando la UI real: Resumen, Incidentes, Salud de la red,
+            tarjetas y gráficos todos en español. `node --check` limpio, `audit:i18n` limpio.
+            Pusheado a `main` a petición del usuario para que los otros 3 clones lo reciban.
+Did not:    No investigado CÓMO llegó la función a esa posición (probablemente un merge o
+            un editor que cortó/pegó mal durante la sesión bloqueada de Codex/Astra
+            referenciada en la entrada de abajo — "la verificación de idioma sigue
+            fallando"). No se tocó nada más del archivo.
+Broken:     Nada conocido ahora. **Si alguien ya tiene la UI corriendo con el bundle viejo
+            en memoria, debe recargar sin caché (Cmd+Shift+R)** — el servidor sirve el
+            archivo del disco directamente, no hace falta rebuild ni reiniciar el proceso.
+Contracts:  Sin cambios de contrato. Es un fix de comportamiento, no de forma.
+Next:       Retomar la grabación del video — esto era lo único que la bloqueaba
+            visualmente. Los otros 3 clones deben hacer `git pull` antes de grabar ellos
+            también, o mostrarán el mismo bug en cámara.
+
 ---
 
 ### 2026-09-11 — Codex (GPT-6) — preparación de grabación macOS
