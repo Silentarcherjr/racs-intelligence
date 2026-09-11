@@ -205,21 +205,33 @@ Texto sobrio, esquina inferior izquierda, mismo tipo en todos:
   4:00   Cero egress, verificado
   4:35   Sin red
 
-── PARTE C: VOZ Y SINCRONIZACIÓN ────────────────────────────────────────────
+── PARTE C: VOZ — NO LA GENERES TÚ ──────────────────────────────────────────
 
-La voz se genera con el modelo de Google AI Studio a partir del guion de más
-abajo. Proceso:
+El equipo genera el audio aparte y te lo entrega. Tu trabajo es SOLO
+sincronizarlo. No abras Google AI Studio ni intentes producir la voz.
 
-  1. Genera el audio del guion completo, en español neutro, tono calmado.
-     Nada de locutor entusiasta: esto es un producto de seguridad.
-  2. Alinea el audio contra los cortes. Si un tramo de voz es más largo que
-     su toma, ALARGA la toma (congela el último fotograma o extiende el
-     plano), no aceleres la voz.
-  3. Si el audio total pasa de 5:00, recorta del guion — nunca aceleres.
-  4. Revisa que la voz no tape ningún momento donde el espectador deba leer
-     texto en pantalla.
+Recibirás ocho archivos de audio numerados, uno por segmento. Cada uno
+corresponde a un tramo del video:
 
-Si algo no cuadra, PARA y repórtalo antes de exportar.
+  01  →  0:00   apertura
+  02  →  0:30   detección
+  03  →  1:05   el sistema decide investigar
+  04  →  2:10   evidencia visual en la UI
+  05  →  2:45   la espera de la inferencia
+  06  →  3:20   correlación SOC/NOC
+  07  →  4:00   zero-egress
+  08  →  4:45   cierre
+
+Reglas de sincronización:
+
+- Si un segmento de voz es MÁS LARGO que su toma, ALARGA la toma: congela el
+  último fotograma o extiende el plano. Nunca aceleres la voz.
+- Si es MÁS CORTO, deja el silencio. Un respiro antes del siguiente corte se
+  ve bien; una voz atropellada no.
+- La voz no debe sonar encima de ningún momento donde el espectador tenga que
+  leer texto en pantalla. Si choca, mueve el corte, no la voz.
+- Si el total pasa de 5:00, avisa ANTES de exportar. No recortes el guion por
+  tu cuenta.
 ```
 
 ---
@@ -299,6 +311,82 @@ alrededor de 4:50 — deja margen.
 > **[4:45]** Y esta es la prueba que no requiere que nos crean nada.
 >
 > **[4:52]** RACS Intelligence. Sus datos. Su perímetro.
+
+---
+
+## Configuración para Google AI Studio — la hace el equipo, no Astra
+
+**Dónde:** AI Studio → Speech (o Vertex AI Studio → Media Studio → Speech).
+
+| Ajuste | Valor |
+|---|---|
+| Modelo | Gemini 3.1 Flash TTS — o 2.5 Pro TTS si prefieren más calidad y les sobra tiempo |
+| Idioma | Español (latinoamericano / neutro) |
+| Voz | Una voz **masculina o femenina grave, adulta**. Prueben dos o tres y quédense con la menos "locutor de radio" |
+| Salida | WAV o MP3, la calidad más alta disponible |
+
+**Instrucción de estilo** — péguenla en el campo de *style instructions*:
+
+```
+Lee esto como un ingeniero de seguridad presentando su trabajo a colegas
+técnicos. Tono calmado, seguro y sin énfasis publicitario. Ritmo pausado,
+con pausas naturales en los puntos. No subas la entonación al final de las
+frases. No suenes entusiasta ni comercial: el contenido es serio y se
+sostiene solo.
+```
+
+### Guion, segmento por segmento
+
+Generen **ocho audios separados**, uno por bloque. Es más fácil de sincronizar
+que un archivo largo, y si uno sale mal solo se regenera ese.
+
+> No incluyan los títulos ni los números — solo el texto de cada bloque.
+
+**01 — apertura**
+```
+La telemetría DNS de un banco revela más de lo que parece. Qué aplicaciones usa cada área, cómo se comporta cada endpoint, la estructura interna de la organización. Para una institución regulada, incluso una representación derivada de ese tráfico es información sensible. Y eso vuelve inutilizable el camino habitual: mandar la telemetría a una API en la nube para que un modelo la analice. RACS Intelligence hace lo contrario. Todo ocurre aquí.
+```
+
+**02 — detección**
+```
+Esto es tráfico DNS de la red de un banco: la casa matriz, las sucursales, la banca en línea, la red de cajeros. Cuatro motores deterministas lo analizan en tiempo real y detectan dominios generados por algoritmo, tunneling, beaconing y suplantación de marca. Cada detección trae su evidencia y el peso de cada pieza. El puntaje no es un porcentaje que salió de un modelo: es la suma de estas piezas, y cualquiera puede auditarla.
+```
+
+**03 — decide investigar**
+```
+Aquí está la diferencia. El sistema encontró un dominio que imita a un banco. Riesgo sesenta y cuatro. Un detector normal dispara la alerta y termina. Este decide que le falta evidencia, y explica por qué: el nombre por sí solo no distingue un dominio aparcado de una página viva de robo de credenciales. Así que va a buscarla. Abre un navegador aislado, sin credenciales y sin almacenamiento, con la navegación anclada al dominio. Fotografía la página. Y un segundo modelo, de visión, analiza esa captura. También aquí. Confirma el formulario de credenciales y el lenguaje de urgencia. El riesgo sube de sesenta y cuatro a ochenta y nueve. La captura nunca salió de esta máquina.
+```
+
+**04 — evidencia en la UI**
+```
+Esto es lo que ve el analista: la página falsa que el sistema encontró, al lado de la evidencia DNS que la delató. Y puede pedirle al modelo local que lo explique.
+```
+
+**05 — la espera**
+```
+Fíjense en la espera. Cinco segundos. Eso es un modelo de cuatro mil millones de parámetros corriendo en esta computadora. Una API en la nube respondería en trescientos milisegundos, y se habría llevado los datos. El modelo explica la evidencia. Nunca la inventa, y nunca toca el puntaje.
+```
+
+**06 — correlación**
+```
+RACS también responde la pregunta de las dos de la mañana: ¿el DNS está lento porque el resolver sufre, o porque algo en la red se está portando mal? Misma ventana de tiempo, dos sedes, veredictos opuestos. La sucursal tiene un problema de infraestructura. La casa matriz tiene un problema de seguridad, y el sistema muestra qué hallazgos lo explican. Nunca dice causado. Dice correlacionado. Hay una prueba automatizada que falla si el sistema afirma causalidad.
+```
+
+**07 — zero-egress**
+```
+Y el cero egress no es una frase del README. Hay un guard que bloquea cualquier conexión no local, una verificación a nivel de sistema operativo, y cero kits de desarrollo de nube instalados. Cero endpoints de inferencia en la nube. Cero eventos DNS subidos. Cero capturas subidas.
+```
+
+**08 — cierre**
+```
+No decimos que sea un air gap. La máquina tiene red. Simplemente no la usamos. Y esta es la prueba que no requiere que nos crean nada. RACS Intelligence. Sus datos. Su perímetro.
+```
+
+### Antes de entregarle los audios a Astra
+
+- Escúchenlos completos. Si una cifra suena mal leída, regeneren ese bloque.
+- Nómbrenlos `01.wav` … `08.wav` para que el orden sea obvio.
+- Si el total pasa de 4:50, recorten del guion en vez de acelerar la voz.
 
 ---
 
