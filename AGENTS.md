@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-10 by Claude (Opus 5) — **Rebranded to RACS Intelligence. Only the video remains.**
+**Last updated:** 2026-09-10 by Claude (Opus 5) — **Listo para grabar. Solo falta el video y hacer el repo público.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -381,6 +381,34 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-10 — Claude (Opus 5) — español completo y un bug que borraba incidentes (PRs #29–#33)
+Did:        **PR #33 es el importante.** `evidence_weights` era `Array(UInt8)` pero los
+            pesos son con signo por diseño (`no_visual_similarity` vale -10). ClickHouse
+            rechazaba la fila entera, así que **los incidentes investigados no se
+            guardaban: 20 incidentes, 0 con captura, 0 con explicación.** Migrado a
+            `Array(Int16)`; ahora 20 con captura y 13 con explicación. El error salía por
+            consola pero quedaba enterrado en los logs del demo — apareció al contar
+            filas después de una corrida, no porque algo se viera roto.
+            **PR #32:** el observer de i18n hacía `if (applying) return`, que DESCARTA el
+            lote de mutaciones. El dashboard re-renderiza en cada refresco, así que lo
+            renderizado durante una pasada no se traducía nunca. Ahora agenda otra pasada,
+            más un barrido periódico. Añadido `npm run audit:i18n`, que compara sobre el
+            código y no sobre capturas — un repaso visual solo ve la vista que abriste.
+            **PR #31:** el analista responde en español porque **se le pide**, no porque
+            traduzcamos su salida. Traducirla sería poner nuestras palabras en su boca.
+            **PR #29:** el botón «Explicar con QVAC» dependía del estado del agente para
+            algo que la UI hace en su propio proceso. Ahora expone `/api/capabilities`.
+            **PR #30:** 33 cadenas del detalle del incidente y las acciones recomendadas.
+Did not:    **El video**, y **hacer el repo público** (spec §38 lo exige para que el jurado
+            entre sin credenciales). Nada más pendiente.
+Broken:     Nada conocido. Aviso para la grabación: MedPsy es de 4B y ocasionalmente mezcla
+            idiomas — se vio «利用» dentro de una frase en español. Es el modelo, no el
+            código. Si sale en cámara, repetir la toma.
+Contracts:  `ANALYST_LANGUAGE` (es por defecto). `evidence_weights` es `Array(Int16)`.
+            `/api/capabilities` en la UI. `npm run audit:i18n` debe pasar limpio.
+Next:       **Grabar.** El guion completo está en `docs/GRABACION.md`, con seis
+            verificaciones obligatorias antes de empezar. Luego hacer el repo público.
 
 ### 2026-09-10 — Claude (Opus 5) — rebrand and Spanish (PRs #23, #24)
 Did:        The hackathon entry is registered as **RACS Intelligence**, so that is now the
