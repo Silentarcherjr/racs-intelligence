@@ -176,6 +176,34 @@
     "Not measured": "Sin medir",
     "Local-first DNS security": "Seguridad DNS local por diseño",
 
+    // ── Reportadas en la verificación de idioma ──────────────────────────
+    "Excellent": "Excelente",
+    "Good": "Buena",
+    "Degraded": "Degradada",
+    "Poor": "Mala",
+    "Critical": "Crítica",
+    "excellent": "excelente",
+    "good": "buena",
+    "degraded": "degradada",
+    "poor": "mala",
+    "critical": "crítica",
+    "UNKNOWN": "DESCONOCIDO",
+    "LIKELY_OPERATIONAL": "PROBABLEMENTE OPERACIONAL",
+    "LIKELY_SECURITY_DRIVEN": "PROBABLEMENTE DE SEGURIDAD",
+    "MIXED": "MIXTO",
+    "DNS evidence": "Evidencia DNS",
+    "Inspect": "Inspeccionar",
+    "Agent connected": "Agente conectado",
+    "Available on disk": "Disponible en disco",
+    "Loaded": "Cargado",
+    "Not available": "No disponible",
+    "No latency measured": "Sin latencia medida",
+    "Events consumed": "Eventos consumidos",
+    "Text analyst": "Analista de texto",
+    "Vision analyst": "Analista visual",
+    "Execution device": "Dispositivo de ejecución",
+    "Zero-egress counters": "Contadores de zero-egress",
+
     // ── Resultado del análisis ───────────────────────────────────────────
     "Analyzing locally…": "Analizando localmente…",
     "Loading local evidence…": "Cargando evidencia local…",
@@ -264,29 +292,62 @@
    * Se aplican solo cuando no hubo coincidencia exacta.
    */
   const PATTERNS = [
+    // ORDEN IMPORTA: de específico a genérico. Un patrón amplio como
+    // /^(.+) incidents$/ colocado antes se come "Showing 20 of 20 incidents"
+    // y devuelve "Showing 20 of 20 incidentes" — medio traducido, que se ve
+    // peor que nada.
+    [/^Showing\s+(\d+)\s+of\s+(\d+)\s+incidents?$/i, "Mostrando $1 de $2 incidentes"],
+    [/^QoE\s+(\d+)\/100\s*·\s*Correlation\s+([\d.]+)\s*·\s*(\d+)\s+linked incidents?$/i,
+      "QoE $1/100 · Correlación $2 · $3 incidentes vinculados"],
+    [/^QoE\s+(\d+)\s+is not degraded; nothing to attribute\.$/i,
+      "El QoE $1 no está degradado; no hay nada que atribuir."],
+    [/^(\d+)\s+detected incidents?$/i, "$1 incidentes detectados"],
+    [/^(\d+)\s+linked incidents?$/i, "$1 incidentes vinculados"],
+    [/^(\d+)\s+with visual evidence$/i, "$1 con evidencia visual"],
+    [/^Average across\s+(\d+)\s+reporting sites?$/i, "Promedio de $1 sedes que reportan"],
+    [/^(\d+)\s+DNS events uploaded$/i, "$1 eventos DNS subidos"],
+    [/^(\d+)\s+screenshots?\s+uploaded$/i, "$1 capturas subidas"],
+    [/^(\d+)\s+cloud inference endpoints?$/i, "$1 endpoints de inferencia en la nube"],
+    [/^(\d+)\s+sandbox renders?$/i, "$1 renders del sandbox"],
+    [/^(\d+)\s+attempts?\s*·\s*(\d+)\s+local$/i, "$1 intentos · $2 locales"],
     [/^(\d+)\s+source hosts?$/i, "$1 hosts de origen"],
     [/^(\d+)%\s+confidence$/i, "$1% de confianza"],
-    [/^(\d+)\s+linked incidents?$/i, "$1 incidentes vinculados"],
     [/^Detection evidence\s*·\s*total weight\s*(-?\d+)$/i,
       "Evidencia de detección · peso total $1"],
-    [/^(.+)\s+in the active window$/i, "$1 en la ventana activa"],
-    [/^(.+)\s+screenshots uploaded$/i, "$1 capturas subidas"],
-    [/^(.+)\s+events uploaded$/i, "$1 eventos subidos"],
-    [/^(.+)\s+detections?$/i, "$1 detecciones"],
-    [/^(.+)\s+incidents?$/i, "$1 incidentes"],
-    [/^(\d+)\s+calls?$/i, "$1 llamadas"],
+    [/^Inspect\s+(.+)$/i, "Inspeccionar $1"],
+    [/^Updated\s+(.+)$/i, "Actualizado $1"],
+    [/^(.+?)\s*—\s*GPU requested, on this machine$/i, "$1 — GPU solicitada, en esta máquina"],
+    [/^(.+?)\s*—\s*GPU via Metal, on this machine$/i, "$1 — GPU vía Metal, en esta máquina"],
+    [/^(\d+)\s+blocked$/i, "$1 bloqueadas"],
+    [/^(\d+)\s+screenshots?$/i, "$1 capturas"],
+    // Compuestos: la cola se traduce aparte, marcada con «» para que
+    // translate() la resuelva de forma recursiva.
+    [/^(\d+)\s+calls?\s*·\s*(.+)$/i, "$1 llamadas · «$2»"],
+    [/^(.+?)\s*·\s*(\d+)\s+in the active window$/i, "«$1» · $2 en la ventana activa"],
+    // Genéricos, al final.
+    [/^(\d+)\s+in the active window$/i, "$1 en la ventana activa"],
+    [/^(\d+)\s+detections?$/i, "$1 detecciones"],
+    [/^(\d+)\s+incidents?$/i, "$1 incidentes"],
     [/^(.+)\s+avg$/i, "$1 promedio"],
   ];
 
   const STORE = "racs.lang";
   let lang = localStorage.getItem(STORE) || "es";
 
-  function translate(text) {
+  function translate(text, depth = 0) {
     if (lang !== "es") return text;
-    const exact = DICT[text];
+    // Object.hasOwn: DICT["constructor"] devolvería una función del prototipo.
+    const exact = Object.hasOwn(DICT, text) ? DICT[text] : undefined;
     if (exact) return exact;
     for (const [re, to] of PATTERNS) {
-      if (re.test(text)) return text.replace(re, to);
+      if (!re.test(text)) continue;
+      const out = text.replace(re, to);
+      // Las colas marcadas con «» se traducen aparte: "0 calls · No latency
+      // measured" necesita que la segunda mitad pase por el diccionario, o
+      // queda medio en español.
+      return depth > 2
+        ? out.replace(/[«»]/g, "")
+        : out.replace(/«([^»]*)»/g, (_, inner) => translate(inner.trim(), depth + 1));
     }
     return text;
   }
@@ -302,22 +363,35 @@
     for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n);
 
     for (const node of nodes) {
-      const raw = node.__i18nSource ?? node.nodeValue;
-      const key = raw.trim();
-      if (!key) continue;
-      if (!translatable(key) && !node.__i18nSource) continue;
-      node.__i18nSource = raw;
-      node.nodeValue = raw.replace(key, lang === "es" ? translate(key) : key);
+      try {
+        const raw = node.__i18nSource ?? node.nodeValue;
+        const key = raw.trim();
+        if (!key) continue;
+        if (!translatable(key) && !node.__i18nSource) continue;
+        node.__i18nSource = raw;
+        node.nodeValue = raw.replace(key, lang === "es" ? translate(key) : key);
+      } catch { /* idem: aislar el fallo, no propagarlo */ }
     }
 
+    // El original guardaba el texto en `el.dataset[\`i18n${attr}\`]`. Con
+    // attr = "aria-label" eso produce la clave "i18naria-label", y las claves
+    // de dataset NO admiten guiones: asignarla lanza SyntaxError. La excepción
+    // abortaba la pasada entera en el primer elemento con aria-label — el
+    // logotipo — así que nada más se traducía. El síntoma parecía "faltan
+    // cadenas"; la causa era que el traductor moría en la primera vuelta.
+    const ORIGINALS = new WeakMap();
     for (const el of root.querySelectorAll("[aria-label],[placeholder],[title]")) {
       for (const attr of ["aria-label", "placeholder", "title"]) {
-        const raw = el.getAttribute(attr);
-        if (!raw) continue;
-        const src = el.dataset[`i18n${attr}`] ?? raw;
-        if (!DICT[src.trim()] && !el.dataset[`i18n${attr}`]) continue;
-        el.dataset[`i18n${attr}`] = src;
-        el.setAttribute(attr, lang === "es" ? translate(src.trim()) : src);
+        try {
+          const raw = el.getAttribute(attr);
+          if (!raw) continue;
+          let store = ORIGINALS.get(el);
+          if (!store) { store = {}; ORIGINALS.set(el, store); }
+          const src = store[attr] ?? raw;
+          if (!translatable(src.trim()) && !store[attr]) continue;
+          store[attr] = src;
+          el.setAttribute(attr, lang === "es" ? translate(src.trim()) : src);
+        } catch { /* un atributo no traducible no puede tumbar la pasada */ }
       }
     }
     document.documentElement.lang = lang;
