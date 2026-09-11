@@ -28,4 +28,10 @@ What it contains, so each lane has something to detect:
 Generated with a fixed seed (`20260909`) and committed, so it is byte-identical for
 everyone. Regenerating it changes a shared contract — if you must, say so in §10.
 
-Sites: `pa-hq` (zone `corp.local`) and `pa-branch-01` (zone `branch.corp.local`).
+Sites: `ca-casa-matriz` (zone `corp.banco.local`) and `ca-costa-del-este`
+(zone `sucursal.banco.local`) — a bank's data centre and one of its branches.
+The generator adds `ca-el-dorado`, `ca-banca-linea` and `ca-red-atm`.
+
+The site names are real Panamanian districts with real bank branches. The
+*threat* brands are all fictional: a repository that ships a convincing
+imitation of a real bank's login page is a liability regardless of intent.
