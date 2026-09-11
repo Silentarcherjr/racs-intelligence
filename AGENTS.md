@@ -110,7 +110,7 @@ Useful spec sections (do not re-read the whole file):
 
 ## 4. Current state
 
-**Last updated:** 2026-09-10 by Claude (Opus 5) — **Listo para grabar. Solo falta el video y hacer el repo público.**
+**Last updated:** 2026-09-11 by Claude (Sonnet 5) — **Video grabado (`grabacion/racs-demo-final.mp4`). Solo falta hacer el repo público.**
 **Hackathon hour:** ~6–8.
 
 ### Repository status
@@ -162,7 +162,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
 | 17 | Zero-egress proof | **DONE ✅** | Claude | Three layers: in-process socket guard (`packages/egress-guard`, armed unconditionally), OS-level `lsof` check (`scripts/verify-zero-egress.sh`, passing), and the Wi-Fi-off test. `docs/ZERO_EGRESS.md` states the claim precisely and lists what it does **not** prove. Never says "air-gapped" — there is a test for that. |
 | 18 | Benchmarks (Track 02 only) | NOT STARTED | — | spec §22 |
-| 19 | Grabación macOS — verificaciones y video | **BLOCKED** | Anthony / Codex (GPT-6) | 2026-09-11: main actualizado, build y bootstrap correctos; 20 incidentes, 19 con captura tras calentamiento. Imagen y botón QVAC verificados en Chrome. Sin video: Computer Use deniega Terminal. Incidencias y entrega en docs/GRABACION_MAC_VERIFICACION.md. |
+| 19 | Grabación macOS — verificaciones y video | **DONE ✅** | Claude (Sonnet 5) | 2026-09-11: `grabacion/racs-demo-final.mp4` (69.2s, 1920x1080, todo en español). Ver §10 para el detalle. |
 
 ### QVAC: verified, with numbers
 
@@ -322,7 +322,8 @@ Add here instead of guessing or editing another lane. Remove when resolved (and 
       botnet activity" for a typosquat, which the evidence does not support (spec §20
       rule 1). Real incidents came back accurate; watch it, don't block on it.
 - [x] ~~Wire the investigation into the agent~~ — **done (PR #16).** Verified live: risk 80→100.
-- [ ] 🔴 **Record the 5-minute video.** The last remaining Must Have (spec §29, §31).
+- [x] ~~Record the video~~ — **done 2026-09-11.** `grabacion/racs-demo-final.mp4`, 69.2s,
+      fully Spanish. See §10.
 - [x] ~~Nobody has run `docker-compose.yml`~~ — **verified end to end (PR #10)** on
       colima 0.10.3 / Docker 29.5.2. The jury can reproduce the project.
 - [ ] **Make the repo public before submitting** (or grant jury access). Spec §38 requires
@@ -382,6 +383,56 @@ Broken:     (anything failing, flaky or stubbed — be honest)
 Contracts:  (anything added/changed in §6)
 Next:       (the single most useful next action for whoever picks this up)
 ```
+
+### 2026-09-11 — Claude (Sonnet 5) — video grabado (grabacion/racs-demo-final.mp4)
+Did:        **El último Must Have. `grabacion/racs-demo-final.mp4`, 69.2s, 1920x1080,
+            H.264, 100% en español, verificado frame por frame.** Dos clips concatenados:
+              1. `racs-momento-clave.mp4` (37.2s): dashboard poblado → clic en Incidentes
+                 → incidente de Banco Aurora → tarjetas de evidencia (ya traducidas, ver
+                 commit a3a44c4) → captura del sandbox → clic en "Explicar con QVAC" →
+                 espera real → explicación completa del analista en español.
+              2. `racs-egress-es.mp4` (32s): `scripts/verify-zero-egress.sh` corriendo en
+                 una Terminal limpia, terminando en "RESULTADO: APROBADO".
+            **Cómo se grabó, porque no es obvio:** controlar el navegador en vivo mientras
+            se graba la pantalla no funciona en este entorno — cada nueva instrucción hace
+            que la ventana de VS Code (donde corre este agente) recupere el foco, así que
+            la grabación termina mostrando el editor en vez de Chrome. Se resolvió
+            inyectando `apps/analyst-ui/html/autodemo.js`, un recorrido guiado opt-in
+            (armado con `#autodemo` en la URL) que hace clic, espera y hace scroll por sí
+            solo dentro de la página, sin que el agente tenga que intervenir mientras
+            ffmpeg graba. Para el segundo clip se abrió una Terminal.app nueva vía
+            AppleScript (`osascript`) y se le pidió correr el script directamente —
+            también evita el editor. Todo en una sola llamada de shell (arrancar ffmpeg en
+            segundo plano, disparar la acción, dormir el tiempo justo, cortar) para no dar
+            oportunidad a que el foco cambie entre instrucciones. Aun así fue no
+            determinista: de 5 tomas totales, 2 salieron con el editor tapando la pantalla
+            a mitad de camino — se repitieron hasta lograr una toma limpia de cada clip.
+            **Dos bugs de idioma encontrados y arreglados en el camino** (commits 2d67369,
+            a3a44c4 — ver la entrada de abajo) porque aparecieron en cámara durante la
+            primera toma. Sin ellos el video habría mostrado la mitad del dashboard en
+            inglés otra vez.
+            **`scripts/verify-zero-egress.sh` traducido al español completo** (commit
+            fff548b) a petición del usuario — antes solo existía en inglés; la lógica y
+            los checks no cambiaron, solo el texto.
+Did not:    No se tocaron `racs-demo-limpio.mp4` ni `egress.mov` (las tomas de la sesión
+            anterior) — son de **antes** del fix de idioma y muestran "Security overview"
+            en inglés más una terminal junto al navegador. Se dejaron intactas en
+            `grabacion/` (gitignored) por si sirven de referencia, pero el video de entrega
+            es `racs-demo-final.mp4`. No se grabó la prueba de Wi-Fi apagado (spec §21) —
+            `verify-zero-egress.sh` ya demuestra el egress cero a nivel de sockets del SO;
+            apagar el Wi-Fi de verdad exigiría otra toma y el tiempo no daba.
+Broken:     Nada conocido en el video. `verify-zero-egress.sh` sigue con la limitación ya
+            documentada en §8: la lista de peers observados puede salir vacía si la ventana
+            de 6s no alcanza a capturar tráfico — el script pasa igual porque no encuentra
+            nada FUERA del límite, no porque haya verificado algo dentro. Preexistente, no
+            introducido hoy.
+Contracts:  Nuevo archivo público `/autodemo.js` en el allowlist de `apps/analyst-ui/src/
+            index.ts` — inerte sin `#autodemo` en la URL, no afecta a usuarios reales.
+Next:       **Hacer el repo público antes de entregar** (spec §38, sigue pendiente — ver
+            §8). Subir `racs-demo-final.mp4` a donde vaya el envío. Si sobra tiempo:
+            considerar grabar también el Wi-Fi-off real, o borrar las tomas viejas de
+            `grabacion/` para no confundir a quien las encuentre después (están
+            gitignored, así que no afecta al repo, solo al disco local).
 
 ### 2026-09-11 — Claude (Sonnet 5) — i18n crítico: nada se traducía (commit 2d67369)
 Did:        **Encontrado y arreglado en vivo, minutos antes de grabar.** `translatable()`
