@@ -19,7 +19,8 @@
     "bootstrap": "node scripts/bootstrap.mjs",
     "demo": "node scripts/demo.mjs",
     "test": "node --test packages/*/dist/*.test.js",
-    "audit:i18n": "node scripts/audit-i18n.mjs"
+    "audit:i18n": "node scripts/audit-i18n.mjs",
+    "grabar": "node scripts/preparar-grabacion.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

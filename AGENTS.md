@@ -162,6 +162,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
 | 17 | Zero-egress proof | **DONE ✅** | Claude | Three layers: in-process socket guard (`packages/egress-guard`, armed unconditionally), OS-level `lsof` check (`scripts/verify-zero-egress.sh`, passing), and the Wi-Fi-off test. `docs/ZERO_EGRESS.md` states the claim precisely and lists what it does **not** prove. Never says "air-gapped" — there is a test for that. |
 | 18 | Benchmarks (Track 02 only) | NOT STARTED | — | spec §22 |
+| 19 | Grabación macOS — verificaciones y video | **BLOCKED** | Anthony / Codex (GPT-6) | 2026-09-11: main actualizado, build y bootstrap correctos; 20 incidentes, 19 con captura tras calentamiento. Imagen y botón QVAC verificados en Chrome. Sin video: Computer Use deniega Terminal. Incidencias y entrega en docs/GRABACION_MAC_VERIFICACION.md. |
 
 ### QVAC: verified, with numbers
 
@@ -302,6 +303,8 @@ safety net; if it leaves duplicated rows, clean them on `main`.
 
 Add here instead of guessing or editing another lane. Remove when resolved (and log the resolution).
 
+- [ ] **Grabación macOS, 2026-09-11 — revisión de cierre del demo (integración/QVAC):** el calentamiento termina con `WORKER_SHUTDOWN` en una investigación y fallo HTTP del sink; quedan 20 incidentes, 19 con captura. No se modificó código. El verificador de egress imprimió PASS sin sockets al ejecutarlo durante el demo; repetido con el demo detenido sí observó `::1:9092`. Revisar que detecte un agente que no arranca. Ver docs/GRABACION_MAC_VERIFICACION.md.
+
 - [ ] **Collaborators invited, waiting on acceptance** — `frictionspp-svg`, `LowCrime`,
       `Ralu13` at <https://github.com/Silentarcherjr/racs-intelligence/invitations>.
 - [x] ~~SDK vs `./qvac serve`~~ — **DECIDED 2026-09-09: `@qvac/sdk` only.** `serve` is a
@@ -381,6 +384,23 @@ Next:       (the single most useful next action for whoever picks this up)
 ```
 
 ---
+
+### 2026-09-11 — Codex (GPT-6) — preparación de grabación macOS
+Did:        Leyó AGENTS.md y GRABACION_MAC.md completos y las secciones de demo de la spec.
+            Main ya estaba actualizado. npm install/build y bootstrap correctos; Kafka
+            y ClickHouse healthy. Reinició UI y verificó textModel=true. Calentamiento
+            real: 48 eventos; al final 20 incidentes, 19 con captura. Chrome muestra la
+            captura bancaria; botón QVAC activo y dos respuestas mayormente en español.
+            Riesgo observado 60→85 y 80→100. Egress repetido sin demo: PASS con ::1:9092.
+Did not:    No video, edición, voz ni prueba Wi-Fi-off. Computer Use deniega el acceso
+            a Terminal por seguridad. No borró los datos tras verificarlos, para entrega.
+            No cambió código ni hizo commit/push. UI local sigue disponible en 3001.
+Broken:     Cierre del calentamiento abortó una llamada de visión (WORKER_SHUTDOWN) y
+            falló el sink HTTP; 19 alertas en archivo. Primer PASS de egress sin sockets
+            no se acepta como prueba. Hay textos UI en inglés y mezcla de idiomas del modelo.
+Contracts:  Sin cambios.
+Next:       Revisar incidencias en docs/GRABACION_MAC_VERIFICACION.md y realizar la toma
+            de Terminal manualmente; falta el video y no hay audios del equipo en el repo.
 
 ### 2026-09-10 — Claude (Opus 5) — español completo y un bug que borraba incidentes (PRs #29–#33)
 Did:        **PR #33 es el importante.** `evidence_weights` era `Array(UInt8)` pero los
