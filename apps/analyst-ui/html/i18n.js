@@ -253,10 +253,47 @@
     "Command Center": "Centro de mando",
   };
 
+  /**
+   * Frases con un valor interpolado dentro.
+   *
+   * La traducción por coincidencia exacta no puede con ellas: en
+   * `${n} source hosts` el número y el texto viven en el MISMO nodo, así que
+   * la clave cambia con cada valor y nunca coincide. Por eso el detalle del
+   * incidente seguía en inglés aunque el diccionario pareciera completo.
+   *
+   * Se aplican solo cuando no hubo coincidencia exacta.
+   */
+  const PATTERNS = [
+    [/^(\d+)\s+source hosts?$/i, "$1 hosts de origen"],
+    [/^(\d+)%\s+confidence$/i, "$1% de confianza"],
+    [/^(\d+)\s+linked incidents?$/i, "$1 incidentes vinculados"],
+    [/^Detection evidence\s*·\s*total weight\s*(-?\d+)$/i,
+      "Evidencia de detección · peso total $1"],
+    [/^(.+)\s+in the active window$/i, "$1 en la ventana activa"],
+    [/^(.+)\s+screenshots uploaded$/i, "$1 capturas subidas"],
+    [/^(.+)\s+events uploaded$/i, "$1 eventos subidos"],
+    [/^(.+)\s+detections?$/i, "$1 detecciones"],
+    [/^(.+)\s+incidents?$/i, "$1 incidentes"],
+    [/^(\d+)\s+calls?$/i, "$1 llamadas"],
+    [/^(.+)\s+avg$/i, "$1 promedio"],
+  ];
+
   const STORE = "racs.lang";
   let lang = localStorage.getItem(STORE) || "es";
 
-  const translate = (text) => (lang === "es" && DICT[text]) || text;
+  function translate(text) {
+    if (lang !== "es") return text;
+    const exact = DICT[text];
+    if (exact) return exact;
+    for (const [re, to] of PATTERNS) {
+      if (re.test(text)) return text.replace(re, to);
+    }
+    return text;
+  }
+
+  /** ¿Hay algo que traducir en este texto? Exacto o por patrón. */
+  const translatable = (text) =>
+    Boolean(DICT[text]) || PATTERNS.some(([re]) => re.test(text));
 
   /** Remembers each node's original English so switching back is lossless. */
   function apply(root = document.body) {
@@ -268,10 +305,9 @@
       const raw = node.__i18nSource ?? node.nodeValue;
       const key = raw.trim();
       if (!key) continue;
-      const hit = DICT[key];
-      if (!hit && !node.__i18nSource) continue;
+      if (!translatable(key) && !node.__i18nSource) continue;
       node.__i18nSource = raw;
-      node.nodeValue = raw.replace(key, lang === "es" ? (hit ?? key) : key);
+      node.nodeValue = raw.replace(key, lang === "es" ? translate(key) : key);
     }
 
     for (const el of root.querySelectorAll("[aria-label],[placeholder],[title]")) {

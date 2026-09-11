@@ -25,6 +25,21 @@ const i18n = read("apps/analyst-ui/html/i18n.js");
 
 const known = new Set([...i18n.matchAll(/^\s*"([^"]{2,120})":/gm)].map((m) => m[1]));
 
+/**
+ * Las frases con un valor interpolado se resuelven por patrón, no por clave
+ * exacta. Sin leerlos, la auditoría las reportaría como pendientes para
+ * siempre — y una auditoría que da falsos positivos es una que se ignora.
+ */
+const patterns = [...i18n.matchAll(/\[\/\^?(.+?)\/[gimsu]*,\s*"/g)].map((m) => {
+  try { return new RegExp(m[1]); } catch { return null; }
+}).filter(Boolean);
+
+const covered = (s) =>
+  known.has(s) || patterns.some((re) => re.test(s)) ||
+  // El auditor extrae el fragmento sin su valor ("source hosts" en vez de
+  // "5 source hosts"), así que se prueba también con un número delante.
+  patterns.some((re) => re.test(`1 ${s}`) || re.test(`1% ${s}`) || re.test(`${s} 1`));
+
 /** Identifiers and data that must stay as they are. */
 const IGNORE = [
   /^[a-z0-9._-]+$/,                 // slugs, filenames, site ids
@@ -33,9 +48,10 @@ const IGNORE = [
   /\.(example|com|local|pa|org|info)\b/,
   /^[A-Z_]+$/,                      // CONSTANT_NAMES
   /^(GET|POST|px|em|vw|rgba?|http)/,
-  // Template literals and regex fragments are code, not copy. Left in, they
-  // make the audit noisy, and a noisy audit is one people stop running.
-  /\$\{|\\\\|\|\||=>|\(\)|\[\^|\.replace\(|event\.|rect\./,
+  // Fragmentos de código, no de copia. Ojo: NO se filtra por contener ${} —
+  // ese filtro fue un error y escondió las frases interpoladas, que es
+  // precisamente donde quedó texto en inglés.
+  /\\\\|\|\||=>|\(\)|\[\^|\.replace\(|event\.|rect\.|\.join\(|toFixed/,
   // Proper nouns keep their spelling in every language.
   /^(RACS|VisionPsy|MedPsy|Grafana|ClickHouse|Kafka|Wazuh|QVAC|Docker)\b/,
 ];
@@ -51,15 +67,18 @@ const add = (t) => {
 };
 
 for (const src of [html, js]) {
-  for (const m of src.matchAll(/>([^<>{}$]{3,120})</g)) add(m.group?.[1] ?? m[1]);
+  for (const m of src.matchAll(/>([^<>{}$]{3,120})</g)) add(m[1]);
+  // Dentro de template literals: >texto\${  y  }texto<
+  for (const m of src.matchAll(/>([^<>${}\n]{3,90})\$\{/g)) add(m[1]);
+  for (const m of src.matchAll(/\}([^<>${}\n]{3,90})</g)) add(m[1]);
   for (const m of src.matchAll(/'([A-Z][^'\\]{3,120})'/g)) add(m[1]);
   for (const m of src.matchAll(/"([A-Z][^"\\]{3,120})"/g)) add(m[1]);
   for (const m of src.matchAll(/(?:aria-label|placeholder|title)="([^"]{3,120})"/g)) add(m[1]);
 }
 
-const missing = [...candidates].filter((s) => !known.has(s)).sort();
+const missing = [...candidates].filter((s) => !covered(s)).sort();
 
-console.log(`\n  diccionario: ${known.size} entradas`);
+console.log(`\n  diccionario: ${known.size} entradas · ${patterns.length} patrones`);
 console.log(`  candidatas visibles: ${candidates.size}`);
 
 if (missing.length === 0) {
