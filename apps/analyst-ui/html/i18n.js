@@ -1,3 +1,10 @@
+  /** ¿translate() cambiaría algo? Misma lógica, sin efectos. */
+  function translatable(text) {
+    const saved = lang;
+    lang = "es";
+    try { return translate(text) !== text; } finally { lang = saved; }
+  }
+
 /**
  * Language switching for the analyst UI.
  *
@@ -334,27 +341,58 @@
   const STORE = "racs.lang";
   let lang = localStorage.getItem(STORE) || "es";
 
-  function translate(text, depth = 0) {
-    if (lang !== "es") return text;
-    // Object.hasOwn: DICT["constructor"] devolvería una función del prototipo.
-    const exact = Object.hasOwn(DICT, text) ? DICT[text] : undefined;
-    if (exact) return exact;
+  /**
+   * Adornos que la interfaz antepone: viñetas de estado, guiones, flechas.
+   * Viajan en el mismo nodo de texto que la frase, así que "● Agent connected"
+   * nunca coincidía con la clave "Agent connected". Se separan antes de buscar
+   * y se vuelven a pegar después.
+   */
+  const DECOR = /^([\s●○•◦▪·—–\-→*]*)(.*?)([\s●○•◦▪·—–\-→*]*)$/u;
+
+  function lookup(text, depth) {
+    if (Object.hasOwn(DICT, text)) return DICT[text];
     for (const [re, to] of PATTERNS) {
       if (!re.test(text)) continue;
       const out = text.replace(re, to);
-      // Las colas marcadas con «» se traducen aparte: "0 calls · No latency
-      // measured" necesita que la segunda mitad pase por el diccionario, o
-      // queda medio en español.
       return depth > 2
         ? out.replace(/[«»]/g, "")
         : out.replace(/«([^»]*)»/g, (_, inner) => translate(inner.trim(), depth + 1));
     }
+    return null;
+  }
+
+  /**
+   * Traduce una frase, sus adornos y sus partes.
+   *
+   * Tres rondas de este proyecto se fueron en añadir claves para textos que ya
+   * estaban en el diccionario y no coincidían por un prefijo o por venir
+   * unidos con «·». Añadir entradas no arregla eso: hay que arreglar la
+   * coincidencia.
+   */
+  function translate(text, depth = 0) {
+    if (lang !== "es" || depth > 3) return text;
+
+    const direct = lookup(text, depth);
+    if (direct) return direct;
+
+    // Adornos: "● Agent connected" → "●" + "Agent connected"
+    const m = DECOR.exec(text);
+    if (m && (m[1] || m[3]) && m[2]) {
+      const inner = lookup(m[2], depth) ?? translate(m[2], depth + 1);
+      if (inner && inner !== m[2]) return m[1] + inner + m[3];
+    }
+
+    // Compuestos: cada parte por separado, y se vuelven a unir.
+    if (text.includes(" · ")) {
+      const parts = text.split(" · ");
+      const done = parts.map((x) => translate(x.trim(), depth + 1));
+      if (done.some((x, i) => x !== parts[i].trim())) return done.join(" · ");
+    }
+
     return text;
   }
 
   /** ¿Hay algo que traducir en este texto? Exacto o por patrón. */
-  const translatable = (text) =>
-    Boolean(DICT[text]) || PATTERNS.some(([re]) => re.test(text));
 
   /** Remembers each node's original English so switching back is lossless. */
   function apply(root = document.body) {
