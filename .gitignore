@@ -63,3 +63,7 @@ out/
 out-receiver.log
 grabacion/
 Generated Audio*.wav
+
+# Local agent-session notes; not part of the jury-facing repository.
+AGENTS.md
+CLAUDE.md

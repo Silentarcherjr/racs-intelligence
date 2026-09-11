@@ -375,8 +375,3 @@ adelante se lee como compromiso confirmado, y un puntaje de riesgo no es eso.
 ## 21. Licencia
 
 MIT — ver [LICENSE](LICENSE).
-
----
-
-**Colaboradores y agentes de IA:** lean [`AGENTS.md`](AGENTS.md) antes de hacer cualquier
-cambio.
