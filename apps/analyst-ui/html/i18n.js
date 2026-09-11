@@ -109,6 +109,35 @@
     "No action recorded.": "Sin acción registrada.",
     "No visual description recorded.": "Sin descripción visual registrada.",
     "Insufficient evidence": "Evidencia insuficiente",
+
+    // ── Evidence type labels (pretty() output of threat-engine/evidence-engine
+    //    `type` enums — a small closed set, unlike the free-form description
+    //    sentences that follow each one, which stay in English by design:
+    //    they embed domain names and counts, and translating them would mean
+    //    putting our words in the detection engine's mouth).
+    "Brand Containment": "Contención de marca",
+    "Brand Edit Distance": "Distancia de edición de marca",
+    "Queried By Hosts": "Consultado por hosts",
+    "Homoglyph Substitution": "Sustitución de caracteres",
+    "Multi Site Spread": "Difusión multi-sede",
+    "Interval Regularity": "Regularidad de intervalos",
+    "Beacon Period": "Periodo de beacon",
+    "Single Destination": "Destino único",
+    "Nxdomain Rate": "Tasa de NXDOMAIN",
+    "Unique Failed Domains": "Dominios fallidos únicos",
+    "Name Entropy": "Entropía del nombre",
+    "Vowel Ratio": "Proporción de vocales",
+    "Subdomain Length": "Longitud de subdominio",
+    "Subdomain Uniqueness": "Unicidad de subdominio",
+    "Subdomain Entropy": "Entropía de subdominio",
+    "Payload Qtype Ratio": "Proporción de tipos de consulta (QTYPE)",
+    "Credential Form Detected": "Formulario de credenciales detectado",
+    "Brand Impersonation Visual": "Suplantación visual de marca",
+    "Urgency Language": "Lenguaje de urgencia",
+    "Visual Analysis Inconclusive": "Análisis visual no concluyente",
+    "No Visual Similarity": "Sin similitud visual",
+    "Local Render": "Renderizado local",
+
     "Incident report exported locally.": "Informe exportado localmente.",
     "Connect to the local data source before exporting.":
       "Conéctate a la fuente de datos local antes de exportar.",
