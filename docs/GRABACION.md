@@ -13,8 +13,53 @@ Documento vivo — si aparece otro bug antes de grabar, edítalo aquí.
 Vas a grabar y editar el video de demostración de un proyecto de hackathon.
 Máximo 5 minutos. Trabajas en Windows con PowerShell.
 
-Si algo falla, PARA y repórtame el error exacto. No improvises ni grabes un
-demo roto. No generes la voz: el equipo te entregará los audios.
+No generes la voz: el equipo te entregará los audios.
+
+═══ CUÁNDO ARREGLAR Y CUÁNDO PARAR ═════════════════════════════════════════
+
+No pares ante cualquier problema — perderíamos más tiempo en idas y vueltas
+que arreglándolo. Pero tampoco grabes algo que salga mal. La diferencia es
+esta:
+
+ARREGLA TÚ Y SIGUE  ·  problemas de entorno, no del producto
+
+  - un proceso viejo ocupando un puerto nuestro (3001, 3002, 8099, 8081):
+      Get-NetTCPConnection -LocalPort <puerto> -State Listen -ErrorAction SilentlyContinue |
+        ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+  - un contenedor que no arrancó → docker compose up -d, o restart de ese servicio
+  - dependencias o build desactualizados → npm install, npm run build
+  - el esquema de ClickHouse falta → npm run bootstrap
+  - datos viejos ensuciando la pantalla → TRUNCATE de nuestras propias tablas
+  - una carpeta que no existe → créala
+  - algo que aún no está listo → espera y reintenta, hasta 3 veces
+
+  Arréglalo, di en una línea qué hiciste, y continúa.
+
+PARA Y AVISA  ·  el producto no está mostrando lo que debe
+
+  - la tabla de incidentes sale vacía, o ninguno tiene cámara
+  - el modelo de texto o el de visión aparecen como no disponibles
+  - la interfaz muestra texto en inglés en títulos o botones
+  - el botón "Explicar con QVAC" queda gris, o su respuesta sale en inglés
+  - la captura de pantalla no carga en el detalle del incidente
+  - el riesgo no sube tras la investigación visual
+  - un comando falla y no está en la lista de arriba
+
+  Estos no se arreglan con un reintento: significan que el video saldría mal.
+  Grabar cinco minutos para descubrirlo después cuesta mucho más que
+  preguntar.
+
+NUNCA HAGAS ESTO, aunque parezca que resuelve
+
+  - git reset --hard, git push --force, cambiar de rama
+  - docker compose down -v, docker system prune  (borran datos)
+  - borrar .env, los modelos, o out/evidence
+  - instalar o actualizar herramientas (Node, Docker, paquetes) sin preguntar
+  - editar código fuente para esquivar un problema
+  - saltarte una verificación, o relajarla para que pase
+
+  La última es la más importante. Si una verificación no pasa, el problema es
+  lo que verifica, no la verificación.
 
 ═══ TU INTERFAZ NO DEBE APARECER ═══════════════════════════════════════════
 
