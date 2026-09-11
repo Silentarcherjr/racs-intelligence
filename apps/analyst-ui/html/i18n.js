@@ -175,6 +175,57 @@
     "Waiting for data": "Esperando datos",
     "Not measured": "Sin medir",
     "Local-first DNS security": "Seguridad DNS local por diseño",
+
+    // ── Detalle del incidente ────────────────────────────────────────────
+    "Source hosts": "Hosts de origen",
+    "Visual investigation": "Investigación visual",
+    "Recommended action": "Acción recomendada",
+    "Saved analyst explanation": "Explicación guardada del analista",
+    "Explain with QVAC": "Explicar con QVAC",
+    "Loading incident": "Cargando incidente",
+    "Incident not found": "Incidente no encontrado",
+    "Unable to load incident": "No se pudo cargar el incidente",
+    "No evidence recorded.": "Sin evidencia registrada.",
+    "No visual evidence has been recorded for this incident.":
+      "No se registró evidencia visual para este incidente.",
+    "The recorded screenshot is no longer available on this machine.":
+      "La captura registrada ya no está disponible en esta máquina.",
+    "Local text model not available to this interface.":
+      "El modelo de texto local no está disponible para esta interfaz.",
+    "LOCAL SANDBOX · CAPTURED ON THIS MACHINE":
+      "SANDBOX LOCAL · CAPTURADO EN ESTA MÁQUINA",
+
+    // ── Estados vacíos ───────────────────────────────────────────────────
+    "No detections yet": "Aún no hay detecciones",
+    "No incidents recorded. The next detection will appear here.":
+      "Sin incidentes registrados. La próxima detección aparecerá aquí.",
+    "No correlations recorded yet.": "Aún no hay correlaciones registradas.",
+    "No investigation decisions yet.": "Aún no hay decisiones de investigación.",
+    "Investigation decisions appear while the agent is running.":
+      "Las decisiones aparecen mientras el agente está corriendo.",
+
+    // ── Clasificaciones, como las formatea la UI ─────────────────────────
+    "Typosquatting": "Typosquatting",
+    "Dga": "DGA",
+    "Tunneling": "Tunneling DNS",
+    "Beaconing": "Beaconing",
+    "Phishing": "Phishing",
+
+    // ── Acciones recomendadas (texto determinista, no del modelo) ────────
+    "Isolate the host and inspect running processes; the query pattern suggests malware searching for a live C2 domain.":
+      "Aísla el host e inspecciona los procesos en ejecución; el patrón de consultas sugiere malware buscando un dominio de mando y control activo.",
+    "Capture full DNS payloads for this zone and review what data is leaving; consider blocking the parent zone at the resolver.":
+      "Captura los payloads DNS completos de esta zona y revisa qué datos están saliendo; considera bloquear la zona padre en el resolver.",
+    "Correlate the check-in times with process and network telemetry on the host to identify what is calling out.":
+      "Correlaciona los tiempos de check-in con la telemetría de procesos y red del host para identificar qué está llamando afuera.",
+    "Verify the destination before blocking. Visual inspection in the local sandbox will confirm or clear a phishing page.":
+      "Verifica el destino antes de bloquear. La inspección visual en el sandbox local confirmará o descartará una página de phishing.",
+    "Block the domain and check whether any user submitted credentials to it.":
+      "Bloquea el dominio y comprueba si algún usuario envió credenciales a él.",
+    "Collect further evidence before acting.": "Reúne más evidencia antes de actuar.",
+    "Block the domain at the resolver and check whether any user submitted credentials to it. Preserve the screenshot as evidence.":
+      "Bloquea el dominio en el resolver y comprueba si algún usuario envió credenciales. Conserva la captura como evidencia.",
+
     "Local-first DNS security. All analysis runs on-premise.":
       "Seguridad DNS local por diseño. Todo el análisis corre en sitio.",
     "Security overview": "Panorama de seguridad",
