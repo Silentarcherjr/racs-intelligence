@@ -42,8 +42,7 @@ wazuh-data/
 
 # --- Generated datasets & benchmark output ---
 datasets/generated/
-benchmarks/results/*.json
-!benchmarks/results/.gitkeep
+!benchmarks/results/vision-benchmark.json
 
 # --- Local models (too large for git) ---
 models/

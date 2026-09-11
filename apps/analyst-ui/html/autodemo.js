@@ -2,9 +2,12 @@
  * Recording aid — opt-in only, does nothing unless armed with "#autodemo"
  * in the URL. Drives one smooth, precisely-timed walkthrough for the
  * screen recording so it does not depend on live clicks landing on a
- * re-rendering page: Overview -> Incidents -> the Banco Aurora incident ->
- * scroll through evidence and the captured screenshot -> "Explicar con
- * QVAC" -> hold on the finished explanation.
+ * re-rendering page:
+ *
+ *   Overview -> Incidents (mixed detections) -> a DGA incident -> a
+ *   tunneling incident -> close -> the Banco Aurora incident -> evidence
+ *   -> the captured screenshot -> "Explicar con QVAC" -> the finished
+ *   explanation -> close -> Network health (QoE).
  *
  * Not part of the analyst product surface. Safe to leave in: it is inert
  * for every real user, since nobody links to "#autodemo".
@@ -44,43 +47,74 @@
     });
   }
 
-  async function run() {
-    step("waiting for overview");
-    await sleep(2500);
-
-    step("clicking Incidentes");
-    document.querySelector('a[href="#incidents"]')?.click();
-    await sleep(2000);
-
-    step("finding Aurora row");
-    const openButton = await waitFor(() => {
+  async function openModalFor(predicate) {
+    const btn = await waitFor(() => {
       const rows = [...document.querySelectorAll("tbody tr")];
-      const row = rows.find(
-        (r) =>
-          r.textContent.includes("banco-aur0ra-login.example") &&
-          r.textContent.includes("ca-banca-linea")
-      );
+      const row = rows.find(predicate);
       return row ? row.querySelector(".details-button") : null;
-    });
-    if (!openButton) return step("FAILED: no row/button found");
-    step("clicking Inspeccionar");
-    openButton.click();
-
-    step("waiting for modal");
-    const modal = await waitFor(() => {
+    }, 8000);
+    if (!btn) return null;
+    btn.click();
+    return waitFor(() => {
       const dialog = document.getElementById("incident-modal");
       return dialog && dialog.hasAttribute("open") ? dialog : null;
     });
-    if (!modal) return step("FAILED: modal never opened");
+  }
+
+  function closeModal() {
+    document.getElementById("close-modal")?.click();
+  }
+
+  async function showBriefly(predicate, label) {
+    step("opening " + label);
+    const modal = await openModalFor(predicate);
+    if (!modal) {
+      step("no " + label + " incident found, skipping");
+      return;
+    }
     await sleep(1600);
+    step("showing " + label + " evidence");
+    await smoothScrollTo(modal, Math.round(modal.scrollHeight * 0.45), 1800);
+    await sleep(3200);
+    closeModal();
+    await sleep(900);
+  }
+
+  async function run() {
+    step("waiting for overview");
+    await sleep(4000);
+
+    step("toggling EN");
+    document.querySelector('[data-lang="en"]')?.click();
+    await sleep(2200);
+    step("toggling back to ES");
+    document.querySelector('[data-lang="es"]')?.click();
+    await sleep(1600);
+
+    step("clicking Incidentes");
+    document.querySelector('a[href="#incidents"]')?.click();
+    await sleep(2800);
+
+    // Detection variety before the main investigation story.
+    await showBriefly((r) => r.textContent.includes("Dga"), "DGA");
+    await showBriefly((r) => r.textContent.includes("Tunneling"), "tunneling");
+
+    step("finding Aurora row");
+    const modal = await openModalFor(
+      (r) =>
+        r.textContent.includes("banco-aur0ra-login.example") &&
+        r.textContent.includes("ca-banca-linea")
+    );
+    if (!modal) return step("FAILED: Aurora modal never opened");
+    await sleep(1800);
 
     step("scrolling to evidence");
     await smoothScrollTo(modal, Math.round(modal.scrollHeight * 0.42), 2000);
-    await sleep(2500);
+    await sleep(3200);
 
     step("scrolling to screenshot");
     await smoothScrollTo(modal, modal.scrollHeight, 2200);
-    await sleep(1400);
+    await sleep(1800);
 
     step("finding explain button");
     const explainButton = await waitFor(() => {
@@ -97,10 +131,28 @@
       return result && /Resumen|Summary/i.test(result.textContent || "");
     }, 30000, 300);
     if (!gotResult) step("FAILED: no result within 30s");
-    else step("done");
 
     await smoothScrollTo(modal, modal.scrollHeight, 900);
-    await sleep(4000);
+    await sleep(4500);
+
+    step("closing modal");
+    closeModal();
+    await sleep(900);
+
+    step("opening Salud de la red");
+    document.querySelector('a[href="#network"]')?.click();
+    await waitFor(() => document.querySelector(".qoe-score") || document.querySelector("table"));
+    await sleep(5500);
+
+    step("opening Inteligencia local");
+    document.querySelector('a[href="#intelligence"]')?.click();
+    await waitFor(() => {
+      const grid = document.getElementById("runtime-grid");
+      return grid && grid.children.length > 0 ? grid : null;
+    });
+    await sleep(6500);
+
+    step("done");
   }
 
   run().catch((err) => step("ERROR: " + err.message));

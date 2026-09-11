@@ -1,0 +1,173 @@
+{
+  "timestamp": "2026-09-10T15:31:18.559Z",
+  "hardware": "Apple M1 Max · 34 GB",
+  "os": "darwin 24.6.0 arm64",
+  "qvac_sdk_version": "0.19.0",
+  "model": "qvac/VisionPsy-Nano-460M-Flash-GGUFs",
+  "quantization": "q4_k_m-imat (projector q8)",
+  "task": "visual_phishing_analysis",
+  "model_load_ms": 968,
+  "prompt_tokens": null,
+  "completion_tokens": 36,
+  "ttft_ms": 1143,
+  "tokens_per_second": 234.9,
+  "total_inference_ms": 41336,
+  "throughput_probe": {
+    "prompt": "Describe this web page in detail: its layout, text, colours and purpose.",
+    "completion_tokens": 117,
+    "ttft_ms": 1127,
+    "total_ms": 1625,
+    "note": "Throughput is measured here rather than on the classification calls, whose one-word answers are dominated by image encoding."
+  },
+  "evaluation_set": {
+    "repeats": 3,
+    "cases_per_repeat": 4,
+    "cases_evaluated": 12,
+    "phishing": 2,
+    "benign": 2,
+    "login_form_detection_accuracy": 0.75,
+    "brand_impersonation_detection_accuracy": 0.5,
+    "false_positives": 2,
+    "false_negatives": 7,
+    "average_render_ms": 89,
+    "per_run": [
+      {
+        "run": 1,
+        "cases": [
+          {
+            "domain": "banco-aur0ra-login.example",
+            "label": "phishing",
+            "answers": {
+              "credentials": true,
+              "urgency": true,
+              "financial": false
+            },
+            "correct": "2/3"
+          },
+          {
+            "domain": "micr0soft-secure-login.example",
+            "label": "phishing",
+            "answers": {
+              "credentials": false,
+              "urgency": true,
+              "financial": false
+            },
+            "correct": "1/3"
+          },
+          {
+            "domain": "benign-nortia-logistica.example",
+            "label": "benign",
+            "answers": {
+              "credentials": false,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "3/3"
+          },
+          {
+            "domain": "docs-meridian-sdk.example",
+            "label": "benign",
+            "answers": {
+              "credentials": true,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "2/3"
+          }
+        ]
+      },
+      {
+        "run": 2,
+        "cases": [
+          {
+            "domain": "banco-aur0ra-login.example",
+            "label": "phishing",
+            "answers": {
+              "credentials": true,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "1/3"
+          },
+          {
+            "domain": "micr0soft-secure-login.example",
+            "label": "phishing",
+            "answers": {
+              "credentials": true,
+              "urgency": true,
+              "financial": false
+            },
+            "correct": "2/3"
+          },
+          {
+            "domain": "benign-nortia-logistica.example",
+            "label": "benign",
+            "answers": {
+              "credentials": false,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "3/3"
+          },
+          {
+            "domain": "docs-meridian-sdk.example",
+            "label": "benign",
+            "answers": {
+              "credentials": true,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "2/3"
+          }
+        ]
+      },
+      {
+        "run": 3,
+        "cases": [
+          {
+            "domain": "banco-aur0ra-login.example",
+            "label": "phishing",
+            "answers": {
+              "credentials": true,
+              "urgency": true,
+              "financial": false
+            },
+            "correct": "2/3"
+          },
+          {
+            "domain": "micr0soft-secure-login.example",
+            "label": "phishing",
+            "answers": {
+              "credentials": true,
+              "urgency": true,
+              "financial": false
+            },
+            "correct": "2/3"
+          },
+          {
+            "domain": "benign-nortia-logistica.example",
+            "label": "benign",
+            "answers": {
+              "credentials": false,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "3/3"
+          },
+          {
+            "domain": "docs-meridian-sdk.example",
+            "label": "benign",
+            "answers": {
+              "credentials": false,
+              "urgency": false,
+              "financial": false
+            },
+            "correct": "3/3"
+          }
+        ]
+      }
+    ],
+    "variance_note": "The set is evaluated multiple times because a 460M model is not deterministic. Consecutive single runs of this same set scored 1.00 and 0.75 on login-form detection. Accuracies above are over every case of every run.",
+    "note": "brand_impersonation_detection_accuracy is low because the model repeatedly answers 'no' to the financial-institution question on pages it simultaneously identifies as a bank. Its answer is reported verbatim rather than corrected; overriding it would make the evidence ours rather than the model's."
+  }
+}

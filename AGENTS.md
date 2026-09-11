@@ -161,7 +161,7 @@ Status values: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED` · `UNVERIF
 | 15 | README + docs | **DONE ✅** | Claude | All 21 sections of spec §33 filled from measured values. `docs/ZERO_EGRESS.md` + `docs/ONBOARDING.md`. Missing: ARCHITECTURE, THREAT_MODEL, TRACK_MAPPING, DEMO. |
 | 16 | Demo scripts | **DONE ✅** | Claude | `scripts/bootstrap.sh` + `scripts/demo.sh`. **Verified deterministic**: two consecutive runs give 66 events / 6 incidents identically. |
 | 17 | Zero-egress proof | **DONE ✅** | Claude | Three layers: in-process socket guard (`packages/egress-guard`, armed unconditionally), OS-level `lsof` check (`scripts/verify-zero-egress.sh`, passing), and the Wi-Fi-off test. `docs/ZERO_EGRESS.md` states the claim precisely and lists what it does **not** prove. Never says "air-gapped" — there is a test for that. |
-| 18 | Benchmarks (Track 02 only) | NOT STARTED | — | spec §22 |
+| 18 | Benchmarks (Track 02 only) | **DONE ✅** | — | spec §22. `benchmarks/run-vision-benchmark.mjs` + measured `benchmarks/results/vision-benchmark.json` (load 968ms, TTFT 1143ms, 234.9 tok/s). README §18 documents it. This row was stale — the work was already done and documented; only the board said otherwise. |
 | 19 | Grabación macOS — verificaciones y video | **DONE ✅** | Claude (Sonnet 5) | 2026-09-11: `grabacion/racs-demo-final.mp4` (69.2s, 1920x1080, todo en español). Ver §10 para el detalle. |
 
 ### QVAC: verified, with numbers
