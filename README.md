@@ -173,7 +173,7 @@ que no tiene equivalente en Windows que valga la pena fingir.
 
 ### Verlo funcionar
 
-**Landing y video del proyecto:** [racs-intelligence.vercel.app](https://racs-intelligence.vercel.app) · [Ver demo en YouTube](https://youtu.be/pc7N_vlqlo0)
+**Landing, pitch y video del proyecto:** [Landing](https://racs-intelligence.vercel.app) · [Ver pitch deck](https://racs-intelligence.vercel.app/pitch) · [Ver demo en YouTube](https://youtu.be/pc7N_vlqlo0)
 
 | | | |
 |---|---|---|
