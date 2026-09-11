@@ -67,6 +67,22 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
       `);
       res.end(JSON.stringify(rows[0] ?? null));
     }
+    else if (req.method === "GET" && path === "/api/capabilities") {
+      // What THIS process can do, which is not the same question as what the
+      // agent is doing. The UI runs inference itself through /api/explain, so
+      // gating that button on the agent's status made it permanently disabled
+      // whenever no demo happened to be running — which is most of the time.
+      const modelsDir = process.env["QVAC_MODELS_DIR"] ?? "";
+      const weights = modelsDir ? join(modelsDir, "medpsy-4b-q4_k_m-imat.gguf") : "";
+      res.end(JSON.stringify({
+        textModel: Boolean(weights && existsSync(weights)),
+        reason: !modelsDir
+          ? "QVAC_MODELS_DIR is not set for the UI process"
+          : !existsSync(weights)
+            ? `medpsy-4b-q4_k_m-imat.gguf not found in ${modelsDir}`
+            : null,
+      }));
+    }
     else if (req.method === "POST" && path.startsWith("/api/explain/")) {
       const id = decodeURIComponent(path.slice("/api/explain/".length));
       const rows = await queryClickHouse(`
