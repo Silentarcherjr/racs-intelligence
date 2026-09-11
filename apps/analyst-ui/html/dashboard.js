@@ -28,7 +28,7 @@ const num = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 const clamp = value => Math.max(0, Math.min(100, num(value)));
 const pretty = value => String(value || 'Unknown').replace(/^possible_/, '').replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
 const numberFormat = new Intl.NumberFormat('en-US');
-const state = {incidents:[], qoe:[], correlations:[], runtime:null, refreshing:false, hasData:false};
+const state = {incidents:[], qoe:[], correlations:[], runtime:null, capabilities:null, refreshing:false, hasData:false};
 const riskClass = score => num(score) >= 70 ? 'risk-high' : num(score) >= 40 ? 'risk-medium' : 'risk-low';
 const emptyRow = (cols, text) => `<tr><td colspan="${cols}" class="empty-cell">${escapeHtml(text)}</td></tr>`;
 const REFRESH_MS = 4000;
@@ -162,7 +162,7 @@ async function refreshAll() {
   if(state.refreshing || $('incident-modal').open) return;
   state.refreshing = true;
   $('refresh-button').disabled = true;
-  const results = await Promise.allSettled([getJSON('/api/incidents'),getJSON('/api/qoe'),getJSON('/api/correlations'),getJSON('http://127.0.0.1:3002/status',{signal:AbortSignal.timeout(2500)})]);
+  const results = await Promise.allSettled([getJSON('/api/incidents'),getJSON('/api/qoe'),getJSON('/api/correlations'),getJSON('http://127.0.0.1:3002/status',{signal:AbortSignal.timeout(2500)}),getJSON('/api/capabilities')]);
   const keys = ['incidents','qoe','correlations'];
   const failures = [];
   results.slice(0,3).forEach((result,i) => {
@@ -170,6 +170,8 @@ async function refreshAll() {
     else failures.push(`${keys[i]}: ${result.status==='rejected'?result.reason.message:'Unexpected response format'}`);
   });
   state.runtime = results[3].status==='fulfilled' ? results[3].value : null;
+  // What this interface can do itself, independent of whether the agent runs.
+  state.capabilities = results[4].status==='fulfilled' ? results[4].value : null;
   renderMetrics(); renderCharts(); renderIncidents(); renderNetwork(); renderRuntime(state.runtime);
   $('error-banner').hidden = !failures.length;
   $('error-banner').textContent = failures.length ? `Local data unavailable. Displayed values may be stale. ${failures.join(' · ')}` : '';
@@ -195,8 +197,11 @@ async function showIncident(id) {
     if(!inc) {$('incident-detail').innerHTML='<h2 id="detail-title">Incident not found</h2>';return;}
     const evidence = (inc.evidence_descriptions||[]).map((desc,i)=>`<div class="evidence-item"><span class="evidence-weight">+${num(inc.evidence_weights[i])}</span><div><strong>${escapeHtml(pretty(inc.evidence_types[i]))}</strong>${escapeHtml(desc)}</div></div>`).join('');
     const screenshot = inc.screenshot_path ? '/evidence/'+encodeURIComponent(inc.screenshot_path.split(/[\\/]/).pop()) : null;
-    const textAvailable = Boolean(state.runtime?.models?.text?.available);
-    $('incident-detail').innerHTML = `<div class="detail-heading"><h2 id="detail-title">${escapeHtml(pretty(inc.classification))}</h2><span class="risk-badge ${riskClass(inc.risk_score)}">${num(inc.risk_score)} / 100</span></div><div class="detail-meta"><span>${escapeHtml(inc.site_id)}</span><span>·</span><span>${Math.round(num(inc.confidence)*100)}% confidence</span><span>·</span><span>${(inc.source_hosts||[]).length} source hosts</span></div><p class="detail-domains">${escapeHtml((inc.domains||[]).join(' · '))}</p><div class="detail-section"><h3>Source hosts</h3><p class="detail-domains">${escapeHtml((inc.source_hosts||[]).join(' · '))}</p></div><section class="detail-section"><h3>Detection evidence · total weight ${(inc.evidence_weights||[]).reduce((sum,x)=>sum+num(x),0)}</h3><div class="evidence-list">${evidence || '<p class="detail-empty">No evidence recorded.</p>'}</div></section><section class="detail-section"><h3>Visual investigation</h3>${screenshot?`<div class="screenshot-frame"><div class="screenshot-header">${icon('lock')} LOCAL SANDBOX · CAPTURED ON THIS MACHINE</div><a href="${screenshot}" target="_blank" rel="noopener" aria-label="Open full screenshot"><img id="evidence-image" src="${screenshot}" alt="Suspicious page captured in the isolated local browser"></a><div class="screenshot-caption"><strong>${escapeHtml(inc.visual_model || 'VisionPsy')}:</strong> ${escapeHtml(inc.visual_description || 'No visual description recorded.')}</div></div>`:'<div class="detail-empty">No visual evidence has been recorded for this incident.</div>'}</section><section class="detail-section"><h3>Recommended action</h3><div class="recommendation">${escapeHtml(inc.recommended_action || 'No action recorded.')}</div></section>${inc.explanation?`<section class="detail-section"><h3>Saved analyst explanation</h3><div class="recommendation">${escapeHtml(inc.explanation)}</div></section>`:''}<div class="detail-actions"><button class="button primary" id="explain-button" ${textAvailable?'':'disabled'}>${icon('cpu')} Explain with QVAC</button><span>${textAvailable?'Local inference · may take a few moments':'Text model availability must be confirmed by a running agent.'}</span></div><div class="analysis-result" id="analysis-result" aria-live="polite"></div>`;
+    const textAvailable = Boolean(state.capabilities?.textModel);
+    const explainHint = textAvailable
+      ? 'Local inference · may take a few moments'
+      : (state.capabilities?.reason || 'Local text model not available to this interface.');
+    $('incident-detail').innerHTML = `<div class="detail-heading"><h2 id="detail-title">${escapeHtml(pretty(inc.classification))}</h2><span class="risk-badge ${riskClass(inc.risk_score)}">${num(inc.risk_score)} / 100</span></div><div class="detail-meta"><span>${escapeHtml(inc.site_id)}</span><span>·</span><span>${Math.round(num(inc.confidence)*100)}% confidence</span><span>·</span><span>${(inc.source_hosts||[]).length} source hosts</span></div><p class="detail-domains">${escapeHtml((inc.domains||[]).join(' · '))}</p><div class="detail-section"><h3>Source hosts</h3><p class="detail-domains">${escapeHtml((inc.source_hosts||[]).join(' · '))}</p></div><section class="detail-section"><h3>Detection evidence · total weight ${(inc.evidence_weights||[]).reduce((sum,x)=>sum+num(x),0)}</h3><div class="evidence-list">${evidence || '<p class="detail-empty">No evidence recorded.</p>'}</div></section><section class="detail-section"><h3>Visual investigation</h3>${screenshot?`<div class="screenshot-frame"><div class="screenshot-header">${icon('lock')} LOCAL SANDBOX · CAPTURED ON THIS MACHINE</div><a href="${screenshot}" target="_blank" rel="noopener" aria-label="Open full screenshot"><img id="evidence-image" src="${screenshot}" alt="Suspicious page captured in the isolated local browser"></a><div class="screenshot-caption"><strong>${escapeHtml(inc.visual_model || 'VisionPsy')}:</strong> ${escapeHtml(inc.visual_description || 'No visual description recorded.')}</div></div>`:'<div class="detail-empty">No visual evidence has been recorded for this incident.</div>'}</section><section class="detail-section"><h3>Recommended action</h3><div class="recommendation">${escapeHtml(inc.recommended_action || 'No action recorded.')}</div></section>${inc.explanation?`<section class="detail-section"><h3>Saved analyst explanation</h3><div class="recommendation">${escapeHtml(inc.explanation)}</div></section>`:''}<div class="detail-actions"><button class="button primary" id="explain-button" ${textAvailable?'':'disabled'}>${icon('cpu')} Explain with QVAC</button><span>${escapeHtml(explainHint)}</span></div><div class="analysis-result" id="analysis-result" aria-live="polite"></div>`;
     $('explain-button').addEventListener('click',()=>explainIncident(id));
     $('evidence-image')?.addEventListener('error',event=>{event.target.closest('.screenshot-frame').innerHTML='<div class="detail-empty">The recorded screenshot is no longer available on this machine.</div>';});
   } catch(error) {
