@@ -1,10 +1,3 @@
-  /** ¿translate() cambiaría algo? Misma lógica, sin efectos. */
-  function translatable(text) {
-    const saved = lang;
-    lang = "es";
-    try { return translate(text) !== text; } finally { lang = saved; }
-  }
-
 /**
  * Language switching for the analyst UI.
  *
@@ -392,7 +385,12 @@
     return text;
   }
 
-  /** ¿Hay algo que traducir en este texto? Exacto o por patrón. */
+  /** ¿translate() cambiaría algo? Misma lógica, sin efectos. */
+  function translatable(text) {
+    const saved = lang;
+    lang = "es";
+    try { return translate(text) !== text; } finally { lang = saved; }
+  }
 
   /** Remembers each node's original English so switching back is lossless. */
   function apply(root = document.body) {
