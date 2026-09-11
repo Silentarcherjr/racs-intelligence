@@ -39,7 +39,7 @@ telemetry → local features → QVAC local inference → local evidence → loc
 
 | Track | Status |
 |---|---|
-| **04 — Ovnicom** | **Claimed.** Every stated requirement is implemented and verified. |
+| **04 — Ovnicom** | **Claimed.** MVP requirements are implemented and verified through the local-compatible path. |
 | **05 — Caja de Ahorros** | **Claimed.** See §11 for the banking scenario. |
 | **03 — General Ranking** | Claimed. |
 | **02 — QVAC Psy** | **Claimed.** VisionPsy is central: the visual investigation flow is integrated and working, with measured benchmarks in §18. **We perform no RAG operations** — stated in §19. |
@@ -179,6 +179,8 @@ model is not loaded.
 
 ### Watching it work
 
+**Project landing page and video:** [racs-intelligence.vercel.app](https://racs-intelligence.vercel.app) · [Watch the YouTube demo](https://youtu.be/pc7N_vlqlo0)
+
 | | | |
 |---|---|---|
 | **Analyst UI** | <http://127.0.0.1:3001> | Incidents with full evidence, QoE per site, the SOC/NOC verdict, and an *Explain with QVAC* button. Refreshes every 4 s and pauses while a detail view is open. |
@@ -251,10 +253,10 @@ The runtime refuses to download anything.
 
 | Component | Use |
 |---|---|
-| Apache Kafka 4.3.1 | Event stream |
-| ClickHouse 26.8.2 | Storage |
-| Grafana 13.2.1 | Dashboards |
-| Wazuh | Alert destination (decoder and rules in `infra/wazuh/`) |
+| Apache Kafka 4.0.0 | Event stream |
+| ClickHouse 25.3 | Storage |
+| Grafana 12.0.2 | Dashboards |
+| Wazuh-compatible adapter | Local alert destination; Wazuh decoder and rules in `infra/wazuh/` |
 | `kafkajs` | Kafka client |
 | `@qvac/sdk` | Local inference |
 | QVAC models | Tether AI Research |

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="RACS Intelligence — local-first DNS security intelligence for regulated infrastructure." />
+    <meta name="theme-color" content="#07111f" />
+    <title>RACS Intelligence — Sovereign DNS Security</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="refined.css" />
+    <link rel="stylesheet" href="video.css" />
+  </head>
+  <body>
+    <main>
+      <section class="hero" id="top">
+        <nav aria-label="Primary navigation">
+          <a class="brand" href="#top" aria-label="RACS Intelligence home">
+            <img src="assets/racs-logo-transparent.png" alt="RACS Intelligence" />
+          </a>
+          <div class="nav-links">
+            <a href="#system">System</a>
+            <a href="#proof">Proof</a>
+            <a href="#demo">Demo</a>
+          </div>
+          <div class="language-switch" aria-label="Seleccionar idioma">
+            <button type="button" data-language="es" aria-pressed="true">ES</button>
+            <button type="button" data-language="en" aria-pressed="false">EN</button>
+          </div>
+          <a class="nav-repo" href="https://github.com/Silentarcherjr/racs-intelligence" target="_blank" rel="noreferrer">View repository ↗</a>
+        </nav>
+
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow"><span></span> LOCAL-FIRST SECURITY INTELLIGENCE</p>
+            <h1>See the threat.<br /><i>Keep the data.</i></h1>
+            <p class="lede">RACS turns DNS telemetry into explainable security intelligence without sending a query, an indicator, a prompt, or a screenshot beyond the customer’s infrastructure.</p>
+            <div class="actions">
+              <a class="button primary" href="#demo">Watch the demo <b>↓</b></a>
+              <a class="button ghost" href="#system">Explore the system</a>
+            </div>
+            <div class="hero-notes">
+              <span>Built for regulated infrastructure</span>
+              <span>Panamá · 2026</span>
+            </div>
+          </div>
+          <figure class="hero-image">
+            <img src="assets/security-analyst.png" alt="Security analyst reviewing a local operations workspace" />
+            <figcaption><span>RACS / LOCAL OPERATIONS</span><b>01 — OBSERVE. INVESTIGATE. EXPLAIN.</b></figcaption>
+          </figure>
+        </div>
+        <div class="hero-rule"></div>
+        <div class="ticker" aria-label="System capabilities"><span>DNS TELEMETRY</span><span>DETERMINISTIC DETECTION</span><span>ACTIVE EVIDENCE</span><span>LOCAL QVAC INFERENCE</span><span>SOC × NOC CONTEXT</span></div>
+      </section>
+
+      <section class="statement">
+        <p class="section-label">THE PROBLEM</p>
+        <h2>DNS tells a security story.<br />For a bank, that story is sensitive.</h2>
+        <p>Traditional analysis exports telemetry to cloud services. RACS is designed around a different premise: sensitive infrastructure data should remain inside sensitive infrastructure.</p>
+      </section>
+
+      <section class="system" id="system">
+        <div class="section-intro">
+          <p class="section-label">ONE LOCAL SYSTEM</p>
+          <h2>Evidence in. Decisions out.<br /><i>Nothing leaves.</i></h2>
+        </div>
+        <div class="architecture" aria-label="RACS architecture">
+          <div class="arch-node source"><span class="node-number">01</span><h3>Synthetic DNS</h3><p>Safe, repeatable test telemetry</p></div>
+          <div class="arch-line"></div>
+          <div class="arch-node"><span class="node-number">02</span><h3>Kafka stream</h3><p>Ordered, live events</p></div>
+          <div class="arch-line"></div>
+          <div class="arch-node focal"><span class="node-number">03</span><h3>Sentinel</h3><p>Features, threat score &amp; evidence</p></div>
+          <div class="arch-line"></div>
+          <div class="arch-node"><span class="node-number">04</span><h3>Local action</h3><p>Wazuh, QoE &amp; analyst context</p></div>
+        </div>
+        <div class="capability-grid">
+          <article><span>01</span><h3>Deterministic detection</h3><p>DGA, typosquatting, tunneling and beaconing are scored from explicit, weighted evidence. The model never creates a risk score.</p></article>
+          <article><span>02</span><h3>Active investigation</h3><p>When DNS evidence is insufficient, RACS renders the suspicious page in an isolated browser and acquires only the evidence it needs.</p></article>
+          <article><span>03</span><h3>Security meets operations</h3><p>QoE by site is correlated with security events so a SOC can distinguish infrastructure degradation from a security-driven incident.</p></article>
+        </div>
+      </section>
+
+      <section class="proof" id="proof">
+        <div class="proof-header"><p class="section-label">MEASURED, NOT ASSUMED</p><h2>Local intelligence<br />with receipts.</h2></div>
+        <div class="metric-grid">
+          <article><strong>25 / 25</strong><span>QVAC models passing local smoke tests</span></article>
+          <article><strong>72.6</strong><span>tokens / second · MedPsy-4B analyst</span></article>
+          <article><strong>238.0</strong><span>tokens / second · VisionPsy Flash</span></article>
+          <article><strong>0</strong><span>cloud inference endpoints in the runtime path</span></article>
+        </div>
+        <div class="proof-body">
+          <div><h3>Zero egress is a property, not a slogan.</h3><p>RACS blocks non-local sockets in process, inspects active connections at the operating-system level, and is designed to run unchanged with Wi-Fi off.</p></div>
+          <ul>
+            <li><b>LOCAL MODELS</b><span>QVAC SDK on device</span></li>
+            <li><b>VALIDATED OUTPUT</b><span>Structured schema before use</span></li>
+            <li><b>SYNTHETIC DATA</b><span>No customer traffic, ever</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="demo" id="demo">
+        <div class="demo-copy"><p class="section-label">PRODUCT DEMO</p><h2>From a suspicious<br />domain to an<br /><i>explainable alert.</i></h2><p>The full demonstration follows a banking phishing investigation through detection, isolated visual evidence acquisition, local analysis and SOC/NOC correlation.</p><a class="button ghost" href="https://github.com/Silentarcherjr/racs-intelligence" target="_blank" rel="noreferrer">Read the technical documentation ↗</a></div>
+        <div class="video-shell" id="video-shell">
+          <div class="video-poster">
+            <span class="play-icon">▶</span>
+            <p>RACS INTELLIGENCE</p>
+            <strong>Demo film<br />coming shortly</strong>
+            <small>The final video will play here.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <p class="section-label">BUILT WITH</p>
+        <div><span>TypeScript</span><span>Apache Kafka</span><span>QVAC</span><span>ClickHouse</span><span>Grafana</span><span>Wazuh</span><span>Playwright</span></div>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="#top"><img src="assets/racs-logo-transparent.png" alt="RACS Intelligence" /></a>
+      <p>Sovereign DNS security intelligence.<br />Built in Panamá for Decentralized AI Hackathon 2026.</p>
+      <a href="https://github.com/Silentarcherjr/racs-intelligence" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </footer>
+    <script src="site.js"></script>
+  </body>
+</html>

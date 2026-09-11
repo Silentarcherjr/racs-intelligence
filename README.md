@@ -43,7 +43,7 @@ telemetría → features locales → inferencia QVAC local → evidencia local �
 
 | Track | Estado |
 |---|---|
-| **04 — Ovnicom** | **Reclamado.** Todos los requisitos implementados y verificados. |
+| **04 — Ovnicom** | **Reclamado.** Requisitos MVP implementados y verificados en la ruta local compatible. |
 | **05 — Caja de Ahorros** | **Reclamado.** Ver el escenario bancario en §11. |
 | **03 — Ranking General** | Reclamado. |
 | **02 — QVAC Psy** | **Reclamado.** VisionPsy es central: el flujo de investigación visual está integrado y funcionando, con benchmarks medidos en §18. **No realizamos operaciones RAG** — declarado en §19. |
@@ -173,6 +173,8 @@ que no tiene equivalente en Windows que valga la pena fingir.
 
 ### Verlo funcionar
 
+**Landing y video del proyecto:** [racs-intelligence.vercel.app](https://racs-intelligence.vercel.app) · [Ver demo en YouTube](https://youtu.be/pc7N_vlqlo0)
+
 | | | |
 |---|---|---|
 | **Analyst UI** | <http://127.0.0.1:3001> | Incidentes con toda su evidencia, la captura del sandbox, QoE por sede, veredicto SOC/NOC, y un panel del runtime local en vivo. Se refresca cada 4 s. |
@@ -277,10 +279,10 @@ corrida, como paso de construcción. El runtime se niega a descargar nada.
 
 | Componente | Uso |
 |---|---|
-| Apache Kafka 4.3.1 | Flujo de eventos |
-| ClickHouse 26.8.2 | Almacenamiento |
-| Grafana 13.2.1 | Dashboards |
-| Wazuh | Destino de alertas (decoder y reglas en `infra/wazuh/`) |
+| Apache Kafka 4.0.0 | Flujo de eventos |
+| ClickHouse 25.3 | Almacenamiento |
+| Grafana 12.0.2 | Dashboards |
+| Wazuh-compatible adapter | Destino local de alertas; decoder y reglas para Wazuh en `infra/wazuh/` |
 | `kafkajs` | Cliente de Kafka |
 | `@qvac/sdk` | Inferencia local |
 | `playwright` | Navegador aislado para la investigación visual |
