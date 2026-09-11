@@ -1,3 +1,26 @@
+/**
+ * The analyst's output language.
+ *
+ * The model is ASKED to answer in Spanish rather than having its English
+ * output translated afterwards. Post-translating would put our words in the
+ * model's mouth: an analyst reading the explanation would be reading us
+ * paraphrasing it, which is exactly what the whole "the model explains
+ * evidence, it does not invent it" principle exists to prevent.
+ *
+ * MedPsy derives from Qwen3 and answers in Spanish directly. The seven rules
+ * from the specification are untouched — this only fixes the output language.
+ */
+export type AnalystLanguage = "es" | "en";
+
+const LANGUAGE_RULE: Record<AnalystLanguage, string> = {
+  es: "8. Responde SIEMPRE en español. Los valores de `confidence` siguen siendo low, medium o high.",
+  en: "8. Always answer in English.",
+};
+
+export function systemPrompt(lang: AnalystLanguage = "es"): string {
+  return `${SYSTEM_PROMPT}\n${LANGUAGE_RULE[lang]}`;
+}
+
 export const SYSTEM_PROMPT = `You are a local DNS security analyst running inside regulated infrastructure.
 
 You receive structured evidence produced by deterministic security and QoE engines.

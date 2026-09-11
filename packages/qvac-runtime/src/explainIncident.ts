@@ -6,7 +6,7 @@ import {
   type AnalystResponse,
   type Incident,
 } from "@sentinel/dns-schema";
-import { ANALYST_JSON_SCHEMA, SYSTEM_PROMPT } from "./prompt.js";
+import { ANALYST_JSON_SCHEMA, systemPrompt, type AnalystLanguage } from "./prompt.js";
 
 const MODEL_FILENAME = "medpsy-4b-q4_k_m-imat.gguf";
 
@@ -108,6 +108,7 @@ function buildUserPrompt(incident: Incident): string {
     "Explain the following incident using only the structured evidence provided.",
     "Do not invent evidence. Do not invent or change risk scores. Do not confirm malware unless the input says confirmed.",
     "Return only JSON matching the required schema.",
+    "Escribe summary, likely_scenario, reasoning_evidence y recommended_next_action en español.",
     JSON.stringify({
       id: incident.id,
       siteId: incident.siteId,
@@ -123,8 +124,14 @@ function buildUserPrompt(incident: Incident): string {
   ].join("\n");
 }
 
+/** Defaults to Spanish; the interface and the jury are Spanish-speaking. */
+function defaultLanguage(): AnalystLanguage {
+  return process.env["ANALYST_LANGUAGE"] === "en" ? "en" : "es";
+}
+
 export async function explainIncident(
   incident: Incident,
+  lang: AnalystLanguage = defaultLanguage(),
 ): Promise<AnalystResponse> {
   const modelId = await ensureModel();
   const run = completion({
@@ -132,7 +139,7 @@ export async function explainIncident(
     stream: true,
     captureThinking: false,
     history: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt(lang) },
       { role: "user", content: buildUserPrompt(incident) },
     ],
     generationParams: {

@@ -166,12 +166,15 @@ export async function analyzeScreenshot(screenshotPath: string): Promise<VisionF
     ? brandRaw.split(/[\n.]/)[0]!.trim().slice(0, 80)
     : null;
 
-  const say = (v: boolean | null): string => (v === null ? "could not tell" : v ? "yes" : "no");
+  // This sentence is assembled from the model's yes/no answers, so it is our
+  // wording rather than its prose — writing it in Spanish translates nothing.
+  const say = (v: boolean | null): string =>
+    v === null ? "no se pudo determinar" : v ? "sí" : "no";
   const description =
-    `Brand shown: ${brand ?? "unknown"}. ` +
-    `Asks for credentials: ${say(credentialForm)}. ` +
-    `Uses urgency or pressure: ${say(urgencyLanguage)}. ` +
-    `Presents as a financial institution: ${say(financialBranding)}.`;
+    `Marca mostrada: ${brand ?? "desconocida"}. ` +
+    `Pide credenciales: ${say(credentialForm)}. ` +
+    `Usa urgencia o presión: ${say(urgencyLanguage)}. ` +
+    `Se presenta como institución financiera: ${say(financialBranding)}.`;
 
   return {
     description,
