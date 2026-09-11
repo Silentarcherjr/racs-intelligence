@@ -71,7 +71,12 @@ CREATE TABLE IF NOT EXISTS sentinel.dns_incidents
     source_hosts         Array(String),
     domains              Array(String),
     evidence_types       Array(String),
-    evidence_weights     Array(UInt8),
+    -- Int16, not UInt8: evidence weights are signed by design. The absence of
+    -- visual similarity carries -10, because a detector that can only escalate
+    -- eventually cries wolf. With an unsigned column the whole insert failed
+    -- with "Unsigned type must not contain '-' symbol", which silently dropped
+    -- exactly the investigated incidents — the ones that matter most.
+    evidence_weights     Array(Int16),
     evidence_descriptions Array(String),
     explanation          String,
     recommended_action   String,
